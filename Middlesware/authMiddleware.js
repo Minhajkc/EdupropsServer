@@ -1,20 +1,27 @@
 const jwt = require('jsonwebtoken');
-const config = require('../config/config');
-const User = require('../models/user');
+const config = require('../config');
 
-const authMiddleware = async (req, res, next) => {
-    const token = req.header('Authorization')?.split(' ')[1];
+
+
+const verifyTokenAdmin = (req, res, next) => {
+    const token = req.cookies.accessToken;
+  
+    
     if (!token) {
-        return res.status(401).json({ message: 'Access denied. No token provided.' });
+        return res.status(401).json({ message: 'No token provided' });
     }
 
     try {
-        const decoded = jwt.verify(token, config.jwtSecret);
-        req.user = await User.findById(decoded.id);
-        next();
-    } catch (error) {
-        res.status(400).json({ message: 'Invalid token.' });
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+        if (decoded.username !== 'admin@eduprops') {
+            return res.status(403).json({ message: 'Access denied. Not an admin.' });
+        }
+        req.user = decoded;  
+        next();  
+    } catch (err) {
+        console.error(err);
+        res.status(403).json({ message: 'Invalid token.' });
     }
 };
 
-module.exports = authMiddleware;
+module.exports = {  verifyTokenAdmin };

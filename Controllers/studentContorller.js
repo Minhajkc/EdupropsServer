@@ -35,7 +35,7 @@ const createStudent = async (req, res) => {
         console.log(otp);
         console.log(otpStore,'otp stored');
         
-        //await sendOtpEmail(email, otp);
+        await sendOtpEmail(email, otp);
 
         res.status(200).json({ message: 'OTP sent to email' });
     } catch (error) {
@@ -133,7 +133,7 @@ const googleauth = async (req, res) => {
     try {
         const ticket = await client.verifyIdToken({
             idToken,
-            audience: '997696378611-qvopoihd2m7gvegm7hi8ud1t7aftrfv5.apps.googleusercontent.com', // Ensure this matches your client ID
+            audience: process.env.GOOGLE_CLIENT_ID
         });
 
         const payload = ticket.getPayload();
