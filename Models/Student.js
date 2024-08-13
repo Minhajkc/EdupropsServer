@@ -14,7 +14,11 @@ const StudentSchema = new mongoose.Schema({
       completedLessons: Number
     }],
     createdAt: { type: Date, default: Date.now },
-    lastLogin: Date
+    lastLogin: Date,
+    blocked: {
+      type: Boolean,
+      default: false, // Default value for new documents
+    },
   });
 
 const Student = mongoose.model('Student',StudentSchema)

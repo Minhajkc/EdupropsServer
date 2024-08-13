@@ -5,7 +5,6 @@ const config = require('../config');
 
 const verifyTokenAdmin = (req, res, next) => {
     const token = req.cookies.accessToken;
-  
     
     if (!token) {
         return res.status(401).json({ message: 'No token provided' });

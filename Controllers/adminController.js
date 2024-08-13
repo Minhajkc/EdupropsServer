@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const Admin = require('../Models/AdminModel');
+const Student = require('../Models/Student');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 
 const AdminLogin = async (req, res) => {
@@ -40,20 +41,93 @@ const AdminLogin = async (req, res) => {
     }
   };
 
-  
   const checkAuth = (req, res) => {
-    if (req.user) { 
-        res.json({ isAuthenticated: true, user: req.user });
+    if (req.user) {
+        res.status(200).json({ user: req.user }); // Authenticated: 200 OK
     } else {
-        res.json({ isAuthenticated: false });
+        res.status(401).json({ message: 'Unauthorized' }); // Unauthenticated: 401 Unauthorized
     }
 };
 
 
-module.exports = checkAuth;
+
+const Logout = async (req,res) =>{
+    try {
+
+        res.cookie('accessToken', '', {
+          maxAge: 0, 
+          httpOnly: true, 
+          secure: process.env.NODE_ENV === 'production', 
+          sameSite: 'Strict' 
+        });
+    
+        res.status(200).json({ message: 'Successfully logged out' });
+      } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ message: 'An error occurred while logging out' });
+      }
+}
+
+const AuthPage = async(req,res) =>{
+    try {
+        const students = await Student.find();
+        console.log(students);
+        
+        res.status(200).json(students);
+      } catch (error) {
+        res.status(500).json({ message: 'Error fetching students' });
+      }
+}
+
+const BlockStudent = async (req, res) => {
+    try {
+      const student = await Student.findById(req.params.id);
+  
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+  
+      if (typeof student.blocked === 'undefined') {
+        student.blocked = true;  
+      } else {
+        student.blocked = true;  
+      }
+  
+      await student.save();
+      res.status(200).json(student);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to block student' });
+    }
+  };
+  
+  const UnBlockStudent = async (req, res) => {
+    try {
+      const student = await Student.findById(req.params.id);
+  
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+  
+      if (typeof student.blocked === 'undefined') {
+        student.blocked = false;  
+      } else {
+        student.blocked = false;  
+      }
+  
+      await student.save();
+      res.status(200).json(student);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to unblock student' });
+    }
+  };
+  
 
 
 module.exports = {
    AdminLogin,
-   checkAuth
+   checkAuth,
+   Logout,
+   AuthPage,
+   BlockStudent,
+   UnBlockStudent
 };
