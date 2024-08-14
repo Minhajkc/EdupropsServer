@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const Admin = require('../Models/AdminModel');
 const Student = require('../Models/Student');
+const Mentor = require('../Models/Mentor')
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 
 const AdminLogin = async (req, res) => {
@@ -121,6 +122,15 @@ const BlockStudent = async (req, res) => {
     }
   };
   
+  const GetMentors = async (req, res) => {
+    try {
+        const mentors = await Mentor.find();
+        res.status(200).json(mentors);
+    } catch (err) {
+        console.error('Error fetching mentors:', err);
+        res.status(500).json({ error: 'Failed to fetch mentors' });
+    }
+};
 
 
 module.exports = {
@@ -129,5 +139,6 @@ module.exports = {
    Logout,
    AuthPage,
    BlockStudent,
-   UnBlockStudent
+   UnBlockStudent,
+   GetMentors
 };
