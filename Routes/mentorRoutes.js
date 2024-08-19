@@ -21,4 +21,6 @@ router.post('/Mentor/MentorRegister', async (req, res) => {
       }
 });
 
+router.post('/Mentor/Login',mentorController.Login)
+
 module.exports = router;

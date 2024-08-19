@@ -132,6 +132,27 @@ const BlockStudent = async (req, res) => {
     }
 };
 
+const ApproveMentor = async (req,res)=>{
+    try {
+        const mentorId = req.params.id;
+        
+        const mentor = await Mentor.findByIdAndUpdate(
+            mentorId,
+            { isActive: 'Active' },
+            { new: true } // Return the updated document
+        );
+
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found' });
+        }
+
+        res.json(mentor);
+    } catch (err) {
+        console.error('Error approving mentor:', err);
+        res.status(500).json({ message: 'Failed to approve mentor' });
+    }
+}
+
 
 module.exports = {
    AdminLogin,
@@ -140,5 +161,6 @@ module.exports = {
    AuthPage,
    BlockStudent,
    UnBlockStudent,
-   GetMentors
+   GetMentors,
+   ApproveMentor
 };

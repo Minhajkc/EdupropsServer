@@ -2,9 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
+const bcrypt = require('bcrypt');
 const Mentor = require('../Models/Mentor')
 const cloudinary = require('../Services/cloudinaryConfig');
 const streamifier = require('streamifier');
+const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 
 
 
@@ -37,12 +39,15 @@ const Register = async (req, res) => {
             return res.status(400).json({ error: 'Passwords do not match' });
         }
 
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
         const mentor = new Mentor({
             firstName,
             lastName,
             username,
             email,
-            password,
+            password: hashedPassword, // Store the hashed password
             degree,
             resume: req.fileUrl, // Cloudinary URL for the uploaded file
         });
@@ -55,7 +60,52 @@ const Register = async (req, res) => {
     }
 };
 
+const Login = async (req, res) => {
+    console.log('Login attempt');
+
+    const { email, password } = req.body;
+    console.log(email, password);
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    try {
+        const mentor = await Mentor.findOne({ email });
+
+        
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found' });
+        }
+
+        
+        if(mentor.isActive==='pending'){
+            return res.status(400).json({ message: 'Your account is pending verification' });
+        }
+
+
+       
+        const match = await bcrypt.compare(password, mentor.password);
+
+        if (!match) {
+            return res.status(401).json({ message: 'Password not match' });
+        }
+
+        const accessToken = generateAccessToken(mentor);
+        const refreshToken = generateRefreshToken(mentor);
+
+        res.status(200).json({
+            message: 'Login successful',
+            accessToken,
+            refreshToken
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'An error occurred during login' });
+    }
+};
 module.exports = {
     Register,
-    uploadFileToCloudinary
+    uploadFileToCloudinary,
+    Login
 };
