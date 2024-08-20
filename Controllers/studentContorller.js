@@ -6,7 +6,8 @@ const Student = require('../Models/Student');
 const { sendOtpEmail } = require('../config/email');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 
-const otpStore = {}; // 
+const otpStore = {}; 
+const passwordResetOtps = {};
 
 
 
@@ -46,8 +47,6 @@ const createStudent = async (req, res) => {
 const verifyOtp = async (req, res) => {
     try {
         const { email, otp, password, confirmPassword } = req.body;
-       
-        
 
         const storedOtp = otpStore[email];
 
@@ -94,12 +93,19 @@ const login = async (req, res) => {
     try {
 
         const user = await Student.findOne({ email });
+
+        if(user.blocked){
+            return res.status(400).json({ message: 'Your account has been blocked' });
+        }
+
         if (!user) {
             return res.status(400).json({ message: 'Invalid email' });
         }
+
         if(user && user.password ==='googleauth'){
             return res.status(400).json({ message: 'Please log in using Google.' });
         }
+
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
@@ -131,6 +137,7 @@ const login = async (req, res) => {
 const googleauth = async (req, res) => {
     const { idToken } = req.body;
     try {
+        
         const ticket = await client.verifyIdToken({
             idToken,
             audience: process.env.GOOGLE_CLIENT_ID
@@ -138,27 +145,35 @@ const googleauth = async (req, res) => {
 
         const payload = ticket.getPayload();
         const { sub: googleId, email, name, picture } = payload;
-       
+
+        
         const [firstName, ...lastNameParts] = name.split(' ');
         const lastName = lastNameParts.join(' ');
 
         let student = await Student.findOne({ email });
 
-        if (!student) {
+        if (student) {
+            if (student.blocked) {
+                return res.status(400).json({ message: 'Your account has been blocked.' });
+            }
+            
+            student.lastLogin = new Date();
+            await student.save();
+        } else {
+          
             student = new Student({
-                username: email, 
+                username: email,
                 email,
-                password: 'googleauth',
+                password: 'googleauth', 
                 firstName,
                 lastName,
+                blocked: false 
             });
 
             await student.save();
         }
 
-        student.lastLogin = new Date();
-        await student.save();
-
+   
         const accessToken = generateAccessToken(student);
         const refreshToken = generateRefreshToken(student);
 
@@ -170,7 +185,7 @@ const googleauth = async (req, res) => {
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', 
+            secure: process.env.NODE_ENV === 'production',
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
@@ -182,9 +197,86 @@ const googleauth = async (req, res) => {
 };
 
 
+const passwordResetSendOtp = async (req, res) => {
+    const { email } = req.body;
+    const student = await Student.findOne({email})
+    if (!student) {
+        return res.status(404).json({ message: 'User not found.' });
+    }
+    if (student.password === 'googleauth') {
+        return res.status(400).json({ message: 'Please log in with Google. You cannot reset the password for this account.' });
+    }
+    const otp = generateOtp();
+    passwordResetOtps[email] = otp;
+    try {
+        await sendOtpEmail(email, otp);
+        console.log(passwordResetOtps);
+        return res.status(200).json({ message: 'OTP sent to email.' });
+    } catch (error) {
+        console.error('Error sending OTP email:', error);
+        return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
+    }
+};
+
+
+const passwordResetVerifyOtp = (req, res) => {
+    const { email, otp } = req.body;
+
+    if (passwordResetOtps[email] && passwordResetOtps[email] === otp) {
+        return res.status(200).json({ message: 'OTP verified.' });
+    } else {
+        return res.status(400).json({ message: 'Invalid OTP. Please try again.' });
+    }
+};
+
+
+const passwordResetResetPassword = async (req, res) => {
+    const { email, newPassword } = req.body;
+
+    try {
+        const user = await Student.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+       
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        
+        delete passwordResetOtps[email];
+
+        return res.status(200).json({ message: 'Password reset successful.' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Failed to reset password. Please try again.' });
+    }
+};
+
+
+const getStudentProfile = async (req, res) => {
+    try {
+        const student = await Student.findById(req.user.id).select('-password'); // Exclude password field
+
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found.' });
+        }
+
+        res.status(200).json({ student });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+
 module.exports = {
     createStudent,
     verifyOtp,
     login,
-    googleauth
+    googleauth,
+    passwordResetSendOtp,
+    passwordResetVerifyOtp,
+    passwordResetResetPassword,
+    getStudentProfile
 };

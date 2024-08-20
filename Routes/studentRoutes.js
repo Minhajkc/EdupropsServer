@@ -1,5 +1,6 @@
 const express = require('express');
 const studentController = require('../Controllers/studentContorller');
+const {verifyTokenStudent} = require('../Middlesware/authMiddleware')
 const checkBlockedStatus = require ('../Middlesware/Students/checkBlockedStatus')
 
 const router = express.Router();
@@ -9,6 +10,10 @@ router.post('/register',studentController.createStudent);
 router.post('/verify',studentController.verifyOtp)
 router.post('/login',studentController.login)
 router.post('/auth/google',studentController.googleauth)
+router.post('/password-reset/send-otp', studentController.passwordResetSendOtp);
+router.post('/password-reset/verify-otp', studentController.passwordResetVerifyOtp);
+router.post('/password-reset/reset-password', studentController.passwordResetResetPassword);
+router.get('/profile',verifyTokenStudent,studentController.getStudentProfile)
 
 
 module.exports = router;

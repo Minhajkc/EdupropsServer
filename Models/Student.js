@@ -17,8 +17,13 @@ const StudentSchema = new mongoose.Schema({
     lastLogin: Date,
     blocked: {
       type: Boolean,
-      default: false, // Default value for new documents
+      default: false, 
     },
+    role: {
+      type: String,
+      enum: ['student', 'admin'], 
+      default: 'student'
+  }
   });
 
 const Student = mongoose.model('Student',StudentSchema)
