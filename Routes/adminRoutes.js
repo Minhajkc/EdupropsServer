@@ -9,6 +9,12 @@ router.post('/Admin/Students/:id/block',verifyTokenAdmin,AdminController.BlockSt
 router.post('/Admin/Students/:id/unblock',verifyTokenAdmin,AdminController.UnBlockStudent)
 router.get('/Admin/Mentorauth',verifyTokenAdmin,AdminController.GetMentors)
 router.patch('/Admin/Mentorauth/:id/approve',verifyTokenAdmin,AdminController.ApproveMentor)
+router.patch('/Admin/Mentorauth/:id/reject',verifyTokenAdmin,AdminController.RejectMentor)
+router.post('/Admin/categories',verifyTokenAdmin,AdminController.createCategory);
+router.get('/Admin/categories',verifyTokenAdmin,AdminController.getCategory)
+router.post('/Admin/courses', verifyTokenAdmin, AdminController.createCourse);
+router.get('/Admin/coursesById', verifyTokenAdmin, AdminController.getCourses);
+router.get('/Admin/courses/:id',verifyTokenAdmin,AdminController.getCategoryById)
 router.post('/Admin/logout',AdminController.Logout)
 
 

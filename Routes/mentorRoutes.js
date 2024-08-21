@@ -22,5 +22,8 @@ router.post('/Mentor/MentorRegister', async (req, res) => {
 });
 
 router.post('/Mentor/Login',mentorController.Login)
+router.post('/Mentor/password-reset/send-otp',mentorController.passwordResetSendOtp);
+router.post('/Mentor/password-reset/verify-otp',mentorController.passwordResetVerifyOtp );
+router.post('/Mentor/password-reset/reset-password',mentorController.passwordResetResetPassword );
 
 module.exports = router;

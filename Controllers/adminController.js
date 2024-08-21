@@ -2,6 +2,8 @@ const bcrypt = require('bcrypt');
 const Admin = require('../Models/AdminModel');
 const Student = require('../Models/Student');
 const Mentor = require('../Models/Mentor')
+const Course = require('../Models/Course')
+const Category = require('../Models/CourseCategory')
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 
 const AdminLogin = async (req, res) => {
@@ -138,7 +140,7 @@ const ApproveMentor = async (req,res)=>{
         
         const mentor = await Mentor.findByIdAndUpdate(
             mentorId,
-            { isActive: 'Active' },
+            { isActive: 'active' },
             { new: true } // Return the updated document
         );
 
@@ -153,6 +155,140 @@ const ApproveMentor = async (req,res)=>{
     }
 }
 
+const RejectMentor = async (req,res) =>{
+    try {
+        const mentorId = req.params.id;
+        
+        const mentor = await Mentor.findByIdAndUpdate(
+            mentorId,
+            { isActive: 'rejected',
+                rejectionDate: new Date()
+             },
+            
+            { new: true } 
+        );
+
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found' });
+        }
+
+        res.json(mentor);
+    } catch (err) {
+        console.error('Error rejecting mentor:', err);
+        res.status(500).json({ message: 'Failed to reject mentor' });
+    }
+}
+
+const createCategory = async (req, res) => {
+    try {
+        const { name, description,icon } = req.body;
+        console.log(icon);
+        
+
+        const existingCategory = await Category.findOne({ name });
+
+        if (existingCategory) {
+            return res.status(400).json({ message: 'Category already exists' });
+        }
+        const newCategory = new Category({ name, description,icon });
+        await newCategory.save();
+        res.status(201).json(newCategory);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+const getCategory = async (req,res) =>{
+    try {
+        const categories = await Category.find();
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+const createCourse = async (req, res) => {
+    try {
+        const { title, description, price, instructor, duration, category } = req.body;
+
+     
+        console.log('Course data received:', {
+            title,
+            description,
+            price,
+            instructor,
+            duration,
+            category
+        });
+
+        
+        if (!title || !description || !price || !duration || !category) {
+            
+            return res.status(400).json({ message: 'All fields except instructor are required' });
+        }
+
+       
+        const newCourse = new Course({
+            title,
+            description,
+            price,
+            instructor,
+            duration,
+            category,
+        });
+
+      
+        await newCourse.save();
+
+      
+        res.status(201).json(newCourse);
+
+    } catch (error) {
+       
+        console.error('Error occurred while creating course:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            requestBody: req.body
+        });
+
+        res.status(500).json({
+            message: 'Failed to create course',
+            error: {
+                message: error.message,
+                stack: error.stack,
+            }
+        });
+    }
+};
+
+
+
+const getCategoryById = async (req,res) => {
+
+    try {
+        const categoryId = req.params.id;
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found' });
+            }
+            res.json(category);
+            } catch (err) {
+                res.status(500).json({ message: err.message });
+    }
+
+}
+
+const getCourses = async (req,res) =>{
+    try {
+        const courses = await Course.find();
+        res.json(courses);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+
 
 module.exports = {
    AdminLogin,
@@ -162,5 +298,11 @@ module.exports = {
    BlockStudent,
    UnBlockStudent,
    GetMentors,
-   ApproveMentor
+   ApproveMentor,
+   RejectMentor,
+   createCategory,
+   getCategory,
+   createCourse,
+   getCategoryById,
+   getCourses
 };

@@ -7,8 +7,13 @@ const Mentor = require('../Models/Mentor')
 const cloudinary = require('../Services/cloudinaryConfig');
 const streamifier = require('streamifier');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
+const { sendOtpEmail } = require('../config/email');
 
+const passwordResetOtps = {};
 
+const generateOtp = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 const uploadFileToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
@@ -61,11 +66,7 @@ const Register = async (req, res) => {
 };
 
 const Login = async (req, res) => {
-    console.log('Login attempt');
-
     const { email, password } = req.body;
-    console.log(email, password);
-
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required' });
     }
@@ -78,10 +79,27 @@ const Login = async (req, res) => {
             return res.status(404).json({ message: 'Mentor not found' });
         }
 
-        
-        if(mentor.isActive==='pending'){
+        if (mentor.isActive === 'rejected') {
+            const now = new Date();
+            const rejectionDate = new Date(mentor.rejectionDate);
+            const daysSinceRejection = Math.floor((now - rejectionDate) / (1000 * 60 * 60 * 24));
+
+            if (daysSinceRejection < 3) {
+                return res.status(400).json({
+                    message: `Your account has been rejected. You can reapply after ${3 - daysSinceRejection} day's.`
+                });
+            } else {
+                await Mentor.deleteOne({ _id: mentor._id });
+                return res.status(400).json({ message: 'Your account was rejected and has been deleted. Please reapply.' });
+            }
+        }
+
+
+        if(mentor.isActive ==='pending'){
             return res.status(400).json({ message: 'Your account is pending verification' });
         }
+
+
 
 
        
@@ -104,8 +122,72 @@ const Login = async (req, res) => {
         res.status(500).json({ message: 'An error occurred during login' });
     }
 };
+
+
+const passwordResetSendOtp = async (req, res) => {
+
+    const { email } = req.body;
+    const mentor = await Mentor.findOne({email})
+    if (!mentor) {
+        return res.status(404).json({ message: 'Mentor not found.' });
+    }
+    if (mentor.isActive === 'rejected') {
+        return res.status(400).json({ message: `Sorry your account is rejected ! please try after 3 day's` });
+    }
+    const otp = generateOtp();
+    passwordResetOtps[email] = otp;
+    try {
+        await sendOtpEmail(email, otp);
+        console.log(passwordResetOtps);
+        return res.status(200).json({ message: 'OTP sent to email.' });
+    } catch (error) {
+        console.error('Error sending OTP email:', error);
+        return res.status(500).json({ message: 'Failed to send OTP. Please try again.' });
+    }
+};
+
+
+const passwordResetVerifyOtp = (req, res) => {
+    const { email, otp } = req.body;
+
+    if (passwordResetOtps[email] && passwordResetOtps[email] === otp) {
+        return res.status(200).json({ message: 'OTP verified.' });
+    } else {
+        return res.status(400).json({ message: 'Invalid OTP. Please try again.' });
+    }
+};
+
+
+const passwordResetResetPassword = async (req, res) => {
+
+    const { email, newPassword } = req.body;
+
+    try {
+        const mentor = await Mentor.findOne({ email });
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found.' });
+        }
+
+        mentor.password = await bcrypt.hash(newPassword, 10);
+        await mentor.save();
+
+        
+        delete passwordResetOtps[email];
+
+        return res.status(200).json({ message: 'Password reset successful.' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Failed to reset password. Please try again.' });
+    }
+};
+
+
+
 module.exports = {
     Register,
     uploadFileToCloudinary,
-    Login
+    Login,
+    passwordResetSendOtp,
+    passwordResetVerifyOtp,
+    passwordResetResetPassword
 };

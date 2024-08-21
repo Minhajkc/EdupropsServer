@@ -4,7 +4,7 @@ const CourseSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
-    instructor: { type: mongoose.Schema.Types.ObjectId, ref: 'Mentor' },
+    instructor: [],
     duration: { type: Number, required: true }, // in weeks
     category: { type: String, required: true },
     lessons: [{
@@ -14,7 +14,7 @@ const CourseSchema = new mongoose.Schema({
     }],
     qAndA: [{
       question: { type: String, required: true },
-      askedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      askedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' },
       answers: [{
         answer: { type: String, required: true },
         answeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Mentor' },
@@ -22,14 +22,14 @@ const CourseSchema = new mongoose.Schema({
       }],
       createdAt: { type: Date, default: Date.now }
     }],
-    enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     clicks: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
     rating: { type: Number, min: 0, max: 5, default: 0 },
     reviews: [{
-      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' },
       rating: { type: Number, min: 1, max: 5, required: true },
       comment: { type: String },
       createdAt: { type: Date, default: Date.now }

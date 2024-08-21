@@ -14,9 +14,10 @@ const MentorSchema = new mongoose.Schema({
   lastLogin: Date,
   isActive: {
     type: String,
-    enum: ['pending', 'active'], 
+    enum: ['pending', 'active', 'rejected'], 
     default: 'pending' 
-  }
+  },
+  rejectionDate: Date
 });
 
 const Mentor = mongoose.model('Mentor', MentorSchema);
