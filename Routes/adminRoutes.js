@@ -18,6 +18,8 @@ router.get('/Admin/courses/:id',verifyTokenAdmin,AdminController.getCategoryById
 router.delete('/Admin/categories/:id',verifyTokenAdmin,AdminController.deleteCategory)
 router.put('/Admin/categories/:id',verifyTokenAdmin,AdminController.editcategory)
 router.delete('/Admin/courses/:id',verifyTokenAdmin,AdminController.deleteCourse)
+router.get('/Admin/getCoursebyId/:id',verifyTokenAdmin,AdminController.getCourseById)
+router.put('/Admin/updateCourse/:id',verifyTokenAdmin,AdminController.updateCourse)
 router.post('/Admin/logout',AdminController.Logout)
 
 

@@ -212,14 +212,14 @@ const createCourse = async (req, res) => {
         const { title, description, price, instructor, duration, category } = req.body;
 
      
-        console.log('Course data received:', {
+        {
             title,
             description,
             price,
             instructor,
             duration,
             category
-        });
+        };
 
         
         if (!title || !description || !price || !duration || !category) {
@@ -352,6 +352,37 @@ const deleteCourse= async (req, res) => {
     }
 };
 
+const getCourseById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        
+        const course = await Course.findById(id);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        res.json(course);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+const updateCourse = async (req,res) =>{
+    const { id } = req.params;
+    const updatedData = req.body;
+
+    try {
+        const course = await Course.findByIdAndUpdate(id, updatedData, { new: true });
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+        res.json(course);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+
 
 module.exports = {
    AdminLogin,
@@ -370,5 +401,7 @@ module.exports = {
    getCourses,
    deleteCategory,
    editcategory,
-   deleteCourse
+   deleteCourse,
+   getCourseById,
+   updateCourse
 };
