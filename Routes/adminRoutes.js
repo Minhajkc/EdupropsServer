@@ -15,6 +15,9 @@ router.get('/Admin/categories',verifyTokenAdmin,AdminController.getCategory)
 router.post('/Admin/courses', verifyTokenAdmin, AdminController.createCourse);
 router.get('/Admin/coursesById', verifyTokenAdmin, AdminController.getCourses);
 router.get('/Admin/courses/:id',verifyTokenAdmin,AdminController.getCategoryById)
+router.delete('/Admin/categories/:id',verifyTokenAdmin,AdminController.deleteCategory)
+router.put('/Admin/categories/:id',verifyTokenAdmin,AdminController.editcategory)
+router.delete('/Admin/courses/:id',verifyTokenAdmin,AdminController.deleteCourse)
 router.post('/Admin/logout',AdminController.Logout)
 
 

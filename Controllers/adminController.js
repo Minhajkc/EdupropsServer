@@ -289,6 +289,69 @@ const getCourses = async (req,res) =>{
 }
 
 
+const deleteCategory = async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Step 1: Find and delete related courses
+        const relatedCourses = await Course.find({ category: id });
+        if (relatedCourses.length > 0) {
+            await Course.deleteMany({ category: id });
+        }
+
+        // Step 2: Delete the category
+        const category = await Category.findByIdAndDelete(id);
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found' });
+        }
+
+        res.status(200).json({ message: 'Category and related courses deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error deleting category and related courses' });
+    }
+};
+
+
+const editcategory = async (req, res) => {
+
+    const { id } = req.params;
+    const { name, description, icon } = req.body;
+
+    try {
+        const category = await Category.findByIdAndUpdate(
+            id,
+            { name, description, icon },
+            { new: true, runValidators: true } 
+        );
+
+        if (!category) {
+            return res.status(404).json({ message: 'Category not found' });
+        }
+
+        res.status(200).json(category);
+    } catch (error) {
+        res.status(500).json({ message: error.message || 'Error updating category' });
+    }
+};
+
+
+const deleteCourse= async (req, res) => {
+    const { id } = req.params;
+    try {
+    
+        const course = await Course.findByIdAndDelete(id);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+            }
+     
+            await Course.deleteMany({ id: course.id });
+            res.status(200).json({ message: 'Course deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error deleting category and related courses' });
+    }
+};
+
 
 module.exports = {
    AdminLogin,
@@ -304,5 +367,8 @@ module.exports = {
    getCategory,
    createCourse,
    getCategoryById,
-   getCourses
+   getCourses,
+   deleteCategory,
+   editcategory,
+   deleteCourse
 };
