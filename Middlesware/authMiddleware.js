@@ -45,4 +45,13 @@ const verifyTokenStudent = (req, res, next) => {
     }
 };
 
-module.exports = { verifyTokenAdmin, verifyTokenStudent };
+const timeout = (ms) => {
+    return (req, res, next) => {
+        req.setTimeout(ms, () => {
+            res.status(408).json({ message: 'Request Timeout' });
+        });
+        next();
+    };
+};
+
+module.exports = { verifyTokenAdmin, verifyTokenStudent,timeout};

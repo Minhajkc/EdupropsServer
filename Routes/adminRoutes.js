@@ -1,7 +1,12 @@
 const express = require('express')
 const AdminController = require('../Controllers/adminController')
-const { verifyTokenAdmin } = require('../Middlesware/authMiddleware')
+const { verifyTokenAdmin,timeout } = require('../Middlesware/authMiddleware')
+const fileUpload = require('express-fileupload');
 const router = express.Router()
+router.use(fileUpload({
+    useTempFiles: true,  // Enable temporary file creation
+    tempFileDir: '/tmp/',  // Directory for temp files
+}))
 router.post('/Admin/login',AdminController.AdminLogin)
 router.get('/Admin/checkAuth', verifyTokenAdmin, AdminController.checkAuth)
 router.get('/Admin/StudentsAuth',verifyTokenAdmin,AdminController.AuthPage)
@@ -20,6 +25,8 @@ router.put('/Admin/categories/:id',verifyTokenAdmin,AdminController.editcategory
 router.delete('/Admin/courses/:id',verifyTokenAdmin,AdminController.deleteCourse)
 router.get('/Admin/getCoursebyId/:id',verifyTokenAdmin,AdminController.getCourseById)
 router.put('/Admin/updateCourse/:id',verifyTokenAdmin,AdminController.updateCourse)
+router.put('/Admin/addVideo/:id',verifyTokenAdmin,timeout(120000),AdminController.AddVideo)
+router.delete('/Admin/courses/:courseId/lessons/:lessonIndex', verifyTokenAdmin,AdminController.deleteLesson);
 router.post('/Admin/logout',AdminController.Logout)
 
 

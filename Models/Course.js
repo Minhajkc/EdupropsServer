@@ -7,10 +7,12 @@ const CourseSchema = new mongoose.Schema({
     instructor: [],
     duration: { type: Number, required: true }, // in weeks
     category: { type: String, required: true },
+    image:String,
+    whatYouLearn: { type: String, required: true },
     lessons: [{
       title: String,
-      content: String,
-      videoUrl: String
+      description: String,
+      url:[{}]
     }],
     qAndA: [{
       question: { type: String, required: true },
