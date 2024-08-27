@@ -301,9 +301,7 @@ const getCoursesByCategoryId = async (req, res) => {
 };
 
 const getCourseFullView = async (req, res) => {
-    const { courseId } = req.params; // This is the course ID\
-
-    
+    const { courseId } = req.params;
 
     if (!mongoose.isValidObjectId(courseId)) {
         return res.status(400).json({ message: 'Invalid course ID.' });
@@ -316,12 +314,33 @@ const getCourseFullView = async (req, res) => {
             return res.status(404).json({ message: 'Course not found.' });
         }
 
-        res.json(course);
+        
+        const lessonsInfo = course.lessons.map(lesson => ({
+            title: lesson.title,
+            description: lesson.description,
+            videoCount: lesson.url ? lesson.url.length : 0, // Count the number of videos
+        }));
+        const firstLessonFirstVideoUrl = course.lessons[0] && course.lessons[0].url ? course.lessons[0].url[0] : null;
+        const response = {
+            title: course.title,
+            description: course.description,
+            lessonCount: course.lessons.length, // Total number of lessons
+            lessonsInfo, // Includes title, description, and video count for each lesson
+            image: course.image,
+            price: course.price,
+            duration: course.duration,
+            category: course.category,
+            instructor: course.instructor,
+            firstLessonFirstVideoUrl
+        };
+
+        res.json(response);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
 
+  
 
 module.exports = {
     createStudent,
