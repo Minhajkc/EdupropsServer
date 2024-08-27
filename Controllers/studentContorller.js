@@ -1,10 +1,14 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
+const mongoose = require('mongoose');
 const client = new OAuth2Client('997696378611-qvopoihd2m7gvegm7hi8ud1t7aftrfv5.apps.googleusercontent.com');
 const Student = require('../Models/Student');
 const { sendOtpEmail } = require('../config/email');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
+const Category = require('../Models/CourseCategory')
+const Course = require('../Models/Course')
+
 
 const otpStore = {}; 
 const passwordResetOtps = {};
@@ -270,6 +274,55 @@ const getStudentProfile = async (req, res) => {
 };
 
 
+const getCategory = async (req,res) =>{
+    try {
+        const categories = await Category.find();
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+const getCoursesByCategoryId = async (req, res) => {
+    const { id } = req.params; // This is the category ID
+
+    try {
+        // Fetch all courses that have the matching category ID
+        const courses = await Course.find({ category: id });
+        
+        if (courses.length === 0) {
+            return res.status(404).json({ message: 'No courses found for this category' });
+        }
+
+        res.json(courses);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+const getCourseFullView = async (req, res) => {
+    const { courseId } = req.params; // This is the course ID\
+
+    
+
+    if (!mongoose.isValidObjectId(courseId)) {
+        return res.status(400).json({ message: 'Invalid course ID.' });
+    }
+
+    try {
+        const course = await Course.findById(courseId);
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found.' });
+        }
+
+        res.json(course);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
 module.exports = {
     createStudent,
     verifyOtp,
@@ -278,5 +331,8 @@ module.exports = {
     passwordResetSendOtp,
     passwordResetVerifyOtp,
     passwordResetResetPassword,
-    getStudentProfile
+    getStudentProfile,
+    getCategory,
+   getCoursesByCategoryId,
+   getCourseFullView
 };

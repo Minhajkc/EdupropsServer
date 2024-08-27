@@ -14,6 +14,10 @@ router.post('/password-reset/send-otp', studentController.passwordResetSendOtp);
 router.post('/password-reset/verify-otp', studentController.passwordResetVerifyOtp);
 router.post('/password-reset/reset-password', studentController.passwordResetResetPassword);
 router.get('/profile',verifyTokenStudent,studentController.getStudentProfile)
+router.get('/courses/categories',studentController.getCategory)
+router.get('/courses/category/:id',studentController.getCoursesByCategoryId)
+router.get('/courses/category/selectedcourse/:courseId',studentController.getCourseFullView)
+
 
 
 module.exports = router;
