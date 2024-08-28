@@ -323,6 +323,8 @@ const getCourseFullView = async (req, res) => {
         const firstLessonFirstVideoUrl = course.lessons[0] && course.lessons[0].url ? course.lessons[0].url[0] : null;
         const response = {
             title: course.title,
+            whatYouLearn:course.whatYouLearn,
+            category:course.category,
             description: course.description,
             lessonCount: course.lessons.length, // Total number of lessons
             lessonsInfo, // Includes title, description, and video count for each lesson
