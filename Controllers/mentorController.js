@@ -16,6 +16,7 @@ const generateOtp = () => {
 };
 
 const uploadFileToCloudinary = (fileBuffer) => {
+    console.log('helo')
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           { resource_type: 'raw' },
@@ -33,6 +34,8 @@ const uploadFileToCloudinary = (fileBuffer) => {
   
 
 const Register = async (req, res) => {
+    console.log(req.body);
+    
     try {
         const { firstName, lastName, username, email, password, confirmPassword, degree } = req.body;
 

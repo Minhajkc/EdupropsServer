@@ -4,9 +4,9 @@ const mentorController = require('../Controllers/mentorController');
 
 const router = express.Router();
 
-router.use(fileUpload());
 
-router.post('/Mentor/MentorRegister', async (req, res) => {
+
+router.post('/Mentor/MentorRegister', fileUpload(),async (req, res) => {
     try {
         if (req.files && req.files.resume) {
           const fileBuffer = req.files.resume.data;

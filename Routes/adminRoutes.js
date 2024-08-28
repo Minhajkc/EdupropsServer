@@ -3,10 +3,7 @@ const AdminController = require('../Controllers/adminController')
 const { verifyTokenAdmin,timeout } = require('../Middlesware/authMiddleware')
 const fileUpload = require('express-fileupload');
 const router = express.Router()
-router.use(fileUpload({
-    useTempFiles: true,  // Enable temporary file creation
-    tempFileDir: '/tmp/',  // Directory for temp files
-}))
+
 router.post('/Admin/login',AdminController.AdminLogin)
 router.get('/Admin/checkAuth', verifyTokenAdmin, AdminController.checkAuth)
 router.get('/Admin/StudentsAuth',verifyTokenAdmin,AdminController.AuthPage)
@@ -17,7 +14,10 @@ router.patch('/Admin/Mentorauth/:id/approve',verifyTokenAdmin,AdminController.Ap
 router.patch('/Admin/Mentorauth/:id/reject',verifyTokenAdmin,AdminController.RejectMentor)
 router.post('/Admin/categories',verifyTokenAdmin,AdminController.createCategory);
 router.get('/Admin/categories',verifyTokenAdmin,AdminController.getCategory)
-router.post('/Admin/courses', verifyTokenAdmin, AdminController.createCourse);
+router.post('/Admin/courses', verifyTokenAdmin,  fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}), AdminController.createCourse);
 router.get('/Admin/coursesById', verifyTokenAdmin, AdminController.getCourses);
 router.get('/Admin/courses/:id',verifyTokenAdmin,AdminController.getCategoryById)
 router.delete('/Admin/categories/:id',verifyTokenAdmin,AdminController.deleteCategory)
