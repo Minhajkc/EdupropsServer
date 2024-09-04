@@ -97,14 +97,18 @@ const login = async (req, res) => {
     try {
 
         const user = await Student.findOne({ email });
+         
+
+        
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid email' });
+        }
+
 
         if(user.blocked){
             return res.status(400).json({ message: 'Your account has been blocked' });
         }
 
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid email' });
-        }
 
         if(user && user.password ==='googleauth'){
             return res.status(400).json({ message: 'Please log in using Google.' });
@@ -131,7 +135,7 @@ const login = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        res.status(200).json({ message: 'Login successful' });
+        res.status(200).json({ message: 'Login successful',Student:user });
     } catch (error) {
         console.error(error); // Log error details for debugging
         res.status(500).json({ message: 'Internal server error' });
@@ -193,7 +197,7 @@ const googleauth = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        res.status(200).json({ message: 'Authenticated successfully!', student });
+        res.status(200).json({ message: 'Authenticated successfully!', Student:student });
     } catch (error) {
         console.error('Error verifying ID token:', error);
         res.status(401).json({ message: 'Invalid token.' });
@@ -342,6 +346,84 @@ const getCourseFullView = async (req, res) => {
     }
 };
 
+const logout = async (req,res) =>{
+    try {
+
+        res.clearCookie('accessToken'); 
+        res.status(200).json({ message: 'Logout successful' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error logging out', error });
+    }
+}
+
+const addToCart = async (req,res)=>{
+  
+    const { courseId } = req.params;
+    const studentId = req.student
+
+  
+    try {
+      // Find the student by ID
+      const student = await Student.findById(studentId);
+  
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+  
+      // Check if the course exists
+      const course = await Course.findById(courseId);
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+  
+      // Check if the course is already in the cart
+      if (student.purchasedCourses.includes(courseId)) {
+        return res.status(400).json({ message: 'Course already in cart' });
+      }
+      console.log(student.purchasedCourses)
+      // Add course to cart
+      student.purchasedCourses.push(courseId);
+      await student.save();
+      
+  
+      return res.status(200).json({ message: 'Course added to cart', cart: student.cart });
+    } catch (error) {
+      console.error('Error adding course to cart:', error);
+      return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+const getCartItems = async (req, res) => {
+    try {
+      const studentId = req.student; // Assuming you have the student's ID in req.student from authentication middleware
+  
+      // Fetch student with populated courses
+      const student = await Student.findById(studentId).populate('purchasedCourses');
+  
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+  
+      // Transform the courses data to exclude lessons and include lessonsCount
+      const transformedCourses = student.purchasedCourses.map(course => {
+        return {
+          ...course._doc, // Spread the existing properties
+          lessonsCount: course.lessons.length // Add the lessonsCount property
+        };
+      });
+  
+      // Remove the lessons array from the courses
+      transformedCourses.forEach(course => {
+        delete course.lessons; // Delete the lessons array
+      });
+  
+      res.status(200).json(transformedCourses); // Return the modified courses data
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error, please try again later' });
+    }
+  };
+  
   
 
 module.exports = {
@@ -355,5 +437,8 @@ module.exports = {
     getStudentProfile,
     getCategory,
    getCoursesByCategoryId,
-   getCourseFullView
+   getCourseFullView,
+   logout,
+   addToCart,
+   getCartItems
 };

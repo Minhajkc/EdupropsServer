@@ -38,6 +38,7 @@ const verifyTokenStudent = (req, res, next) => {
             return res.status(403).json({ message: 'Access denied. Not a student.' });
         }
         req.user = decoded;
+        req.student = decoded.id
         next();
     } catch (err) {
         console.error(err);

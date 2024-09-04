@@ -17,6 +17,9 @@ router.get('/profile',verifyTokenStudent,studentController.getStudentProfile)
 router.get('/courses/categories',studentController.getCategory)
 router.get('/courses/category/:id',studentController.getCoursesByCategoryId)
 router.get('/courses/category/selectedcourse/:courseId',studentController.getCourseFullView)
+router.post('/student/logout',verifyTokenStudent,studentController.logout)
+router.post('/cart/:courseId',verifyTokenStudent,studentController.addToCart)
+router.get('/cart',verifyTokenStudent,studentController.getCartItems)
 
 
 
