@@ -368,6 +368,7 @@ const getCourseById = async (req, res) => {
 };
 
 const updateCourse = async (req,res) =>{
+
     const { id } = req.params;
     const updatedData = req.body;
 
@@ -398,6 +399,7 @@ const updateCourse = async (req,res) =>{
 
 
 const AddVideo = async (req, res) => {
+
     const { id } = req.params;
     const { title, description } = req.body;
     const videoFiles = req.files;  // Retrieve the files from the request

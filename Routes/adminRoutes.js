@@ -24,8 +24,14 @@ router.delete('/Admin/categories/:id',verifyTokenAdmin,AdminController.deleteCat
 router.put('/Admin/categories/:id',verifyTokenAdmin,AdminController.editcategory)
 router.delete('/Admin/courses/:id',verifyTokenAdmin,AdminController.deleteCourse)
 router.get('/Admin/getCoursebyId/:id',verifyTokenAdmin,AdminController.getCourseById)
-router.put('/Admin/updateCourse/:id',verifyTokenAdmin,AdminController.updateCourse)
-router.put('/Admin/addVideo/:id',verifyTokenAdmin,timeout(120000),AdminController.AddVideo)
+router.put('/Admin/updateCourse/:id',verifyTokenAdmin, fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}),AdminController.updateCourse)
+router.put('/Admin/addVideo/:id',verifyTokenAdmin, fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}),timeout(120000),AdminController.AddVideo)
 router.delete('/Admin/courses/:courseId/lessons/:lessonIndex', verifyTokenAdmin,AdminController.deleteLesson);
 router.post('/Admin/logout',AdminController.Logout)
 

@@ -20,6 +20,7 @@ router.get('/courses/category/selectedcourse/:courseId',studentController.getCou
 router.post('/student/logout',verifyTokenStudent,studentController.logout)
 router.post('/cart/:courseId',verifyTokenStudent,studentController.addToCart)
 router.get('/cart',verifyTokenStudent,studentController.getCartItems)
+router.delete('/removeFromCart/:courseId',verifyTokenStudent,studentController.removeFromCart)
 
 
 

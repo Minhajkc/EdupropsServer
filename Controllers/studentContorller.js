@@ -326,6 +326,7 @@ const getCourseFullView = async (req, res) => {
         }));
         const firstLessonFirstVideoUrl = course.lessons[0] && course.lessons[0].url ? course.lessons[0].url[0] : null;
         const response = {
+            id:course._id,
             title: course.title,
             whatYouLearn:course.whatYouLearn,
             category:course.category,
@@ -356,11 +357,9 @@ const logout = async (req,res) =>{
     }
 }
 
-const addToCart = async (req,res)=>{
-  
+const addToCart = async (req, res) => {
     const { courseId } = req.params;
-    const studentId = req.student
-
+    const studentId = req.student;
   
     try {
       // Find the student by ID
@@ -377,52 +376,99 @@ const addToCart = async (req,res)=>{
       }
   
       // Check if the course is already in the cart
-      if (student.purchasedCourses.includes(courseId)) {
-        return res.status(400).json({ message: 'Course already in cart' });
-      }
-      console.log(student.purchasedCourses)
-      // Add course to cart
-      student.purchasedCourses.push(courseId);
-      await student.save();
-      
+      const isCourseInCart = student.cart.some(item => item?.courseId?.toString() === courseId);
+    if (isCourseInCart) {
+      return res.status(400).json({ message: 'Course already in cart' });
+    }
   
-      return res.status(200).json({ message: 'Course added to cart', cart: student.cart });
+      // Add course to cart with its price
+      student.cart.push({ courseId: course._id, price: course.price });
+      await student.save();
+  
+      // Calculate the total amount
+      const totalAmount = student.cart.reduce((total, item) => total + item.price, 0);
+  
+      return res.status(200).json({
+        message: 'Course added to cart',
+        cart: student.cart,
+        totalAmount
+      });
     } catch (error) {
       console.error('Error adding course to cart:', error);
       return res.status(500).json({ message: 'Internal Server Error' });
     }
-}
-
-const getCartItems = async (req, res) => {
-    try {
-      const studentId = req.student; // Assuming you have the student's ID in req.student from authentication middleware
+  };
   
-      // Fetch student with populated courses
-      const student = await Student.findById(studentId).populate('purchasedCourses');
+  const getCartItems = async (req, res) => {
+    try {
+      const studentId = req.student;
+  
+      const student = await Student.findById(studentId).populate('cart.courseId');
+      console.log(student)
   
       if (!student) {
         return res.status(404).json({ message: 'Student not found' });
       }
   
-      // Transform the courses data to exclude lessons and include lessonsCount
-      const transformedCourses = student.purchasedCourses.map(course => {
+      let subtotal = 0;
+      const transformedCourses = student.cart.map(item => {
+        subtotal += item.courseId.price;
+  
         return {
-          ...course._doc, // Spread the existing properties
-          lessonsCount: course.lessons.length // Add the lessonsCount property
+          ...item.courseId._doc, // Spread the course data
+          lessonsCount: item.courseId.lessons.length, // Add lessons count
+          price: item.courseId.price // Include the course price
         };
       });
   
-      // Remove the lessons array from the courses
+      const discount = 5; // Apply any logic for discount here
+      const tax = 20; // Apply tax logic here
+      const total = subtotal - discount + tax;
+  
       transformedCourses.forEach(course => {
-        delete course.lessons; // Delete the lessons array
+        delete course.lessons;
       });
   
-      res.status(200).json(transformedCourses); // Return the modified courses data
+      res.status(200).json({
+        courses: transformedCourses,
+        subtotal,
+        discount,
+        tax,
+        total,
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server error, please try again later' });
     }
   };
+
+  const removeFromCart = async (req, res) => {
+    console.log(req.params, req.student);
+    try {
+      const studentId = req.student;
+      const courseId = req.params.courseId;
+  
+      // Find the student and update the cart
+      const result = await Student.updateOne(
+        { _id: studentId },
+        { $pull: { cart: { courseId: courseId } } }
+      );
+  
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+      
+      if (result.modifiedCount === 0) {
+        return res.status(404).json({ message: 'Course not found in cart' });
+      }
+  
+      return res.status(200).json({ message: 'Course removed from cart' });
+    } catch (error) {
+      console.error('Error removing course from cart:', error);
+      return res.status(500).json({ message: 'Server error, please try again later' });
+    }
+  };
+  
   
   
 
@@ -440,5 +486,6 @@ module.exports = {
    getCourseFullView,
    logout,
    addToCart,
-   getCartItems
+   getCartItems,
+   removeFromCart
 };

@@ -8,6 +8,12 @@ const StudentSchema = new mongoose.Schema({
     lastName: String,
     membershipType: { type: String, enum: ['silver', 'gold', 'platinum'], default: 'silver' },
     purchasedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
+    cart: [
+      {
+        courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
+        price: { type: Number, },
+      },
+    ],
     performance: [{
       course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
       score: Number,
