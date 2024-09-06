@@ -21,6 +21,9 @@ router.post('/student/logout',verifyTokenStudent,studentController.logout)
 router.post('/cart/:courseId',verifyTokenStudent,studentController.addToCart)
 router.get('/cart',verifyTokenStudent,studentController.getCartItems)
 router.delete('/removeFromCart/:courseId',verifyTokenStudent,studentController.removeFromCart)
+router.post('/createOrder',verifyTokenStudent,studentController.CreateOrder)
+router.post('/verifyPayment',verifyTokenStudent,studentController.verifyPayment)
+router.post('/savePurchase',verifyTokenStudent,studentController.savePurchase)
 
 
 

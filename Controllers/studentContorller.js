@@ -2,16 +2,23 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const mongoose = require('mongoose');
+const Razorpay = require('razorpay');
 const client = new OAuth2Client('997696378611-qvopoihd2m7gvegm7hi8ud1t7aftrfv5.apps.googleusercontent.com');
 const Student = require('../Models/Student');
 const { sendOtpEmail } = require('../config/email');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const Category = require('../Models/CourseCategory')
 const Course = require('../Models/Course')
+require('dotenv').config();
 
 
 const otpStore = {}; 
 const passwordResetOtps = {};
+
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
 
 
 
@@ -264,7 +271,13 @@ const passwordResetResetPassword = async (req, res) => {
 
 const getStudentProfile = async (req, res) => {
     try {
-        const student = await Student.findById(req.user.id).select('-password'); // Exclude password field
+        // Fetch student with populated purchasedCourses
+        const student = await Student.findById(req.user.id)
+            .select('-password') // Exclude password field
+            .populate({
+                path: 'purchasedCourses', // Field to populate
+            });
+            console.log(student)
 
         if (!student) {
             return res.status(404).json({ message: 'Student not found.' });
@@ -276,6 +289,7 @@ const getStudentProfile = async (req, res) => {
         res.status(500).json({ message: 'Server error.' });
     }
 };
+
 
 
 const getCategory = async (req,res) =>{
@@ -404,8 +418,7 @@ const addToCart = async (req, res) => {
       const studentId = req.student;
   
       const student = await Student.findById(studentId).populate('cart.courseId');
-      console.log(student)
-  
+
       if (!student) {
         return res.status(404).json({ message: 'Student not found' });
       }
@@ -443,7 +456,7 @@ const addToCart = async (req, res) => {
   };
 
   const removeFromCart = async (req, res) => {
-    console.log(req.params, req.student);
+  
     try {
       const studentId = req.student;
       const courseId = req.params.courseId;
@@ -468,6 +481,83 @@ const addToCart = async (req, res) => {
       return res.status(500).json({ message: 'Server error, please try again later' });
     }
   };
+
+
+  const CreateOrder = async (req, res) => {
+    try {
+      const { amount, currency } = req.body; // Get amount and currency from the request
+  
+      const options = {
+        amount: amount * 100, // Razorpay expects the amount in paise (1 INR = 100 paise)
+        currency: currency || 'INR', // Default to INR if no currency is provided
+        receipt: crypto.randomBytes(10).toString('hex'), // Unique receipt ID
+      };
+  
+
+      const order = await razorpay.orders.create(options);
+  
+      if (!order) {
+        return res.status(500).send('Some error occurred');
+      }
+  
+      return res.json(order);
+    } catch (error) {
+      // Send error response if something goes wrong
+      console.error('Error creating Razorpay order:', error);
+      res.status(500).send('Server Error');
+    }
+  };
+
+  const verifyPayment = async(req,res)=>{
+    try {
+        const { order_id, payment_id, signature } = req.body;
+
+        const body = order_id + '|' + payment_id;
+        const expectedSignature = crypto
+          .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+          .update(body.toString())
+          .digest('hex');
+    
+  
+        if (expectedSignature === signature) {
+          return res.json({ status: 'success' });
+        } else {
+          return res.status(400).json({ status: 'failure' });
+        }
+      } catch (error) {
+        res.status(500).send(error);
+      }
+  }
+
+  const savePurchase = async (req, res) => {
+  
+    try {
+      const { cartData } = req.body;
+      const studentId = req.student;
+
+  
+
+      const student = await Student.findById(studentId);
+ 
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+  
+      const purchasedCourseIds = cartData.map(item => item._id); // Assuming each item in cartData has a courseId
+
+ 
+      student.purchasedCourses.push(...purchasedCourseIds);
+      student.cart = []
+ 
+      await student.save();
+  
+      return res.json({ status: 'success' });
+    } catch (error) {
+      console.error('Error saving purchase:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  };
+  
   
   
   
@@ -487,5 +577,8 @@ module.exports = {
    logout,
    addToCart,
    getCartItems,
-   removeFromCart
+   removeFromCart,
+   CreateOrder,
+   verifyPayment,
+   savePurchase
 };
