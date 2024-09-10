@@ -34,6 +34,7 @@ router.put('/Admin/addVideo/:id',verifyTokenAdmin, fileUpload({
 }),timeout(120000),AdminController.AddVideo)
 router.delete('/Admin/courses/:courseId/lessons/:lessonIndex', verifyTokenAdmin,AdminController.deleteLesson);
 router.post('/Admin/logout',AdminController.Logout)
+router.get('/Admin/coursedetailsmentor',verifyTokenAdmin,AdminController.getCourseDetailsForMentor)
 
 
 

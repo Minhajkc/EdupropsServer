@@ -5,7 +5,7 @@ const CourseSchema = new mongoose.Schema({
     description: { type: String, required: true },
     price: { type: Number, required: true },
     instructor: [],
-    duration: { type: Number, required: true }, // in weeks
+    duration: { type: Number, required: true }, 
     category: { type: String, required: true },
     image:String,
     whatYouLearn: { type: String, required: true },

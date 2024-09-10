@@ -277,7 +277,6 @@ const getStudentProfile = async (req, res) => {
             .populate({
                 path: 'purchasedCourses', // Field to populate
             });
-            console.log(student)
 
         if (!student) {
             return res.status(404).json({ message: 'Student not found.' });
@@ -376,30 +375,37 @@ const addToCart = async (req, res) => {
     const studentId = req.student;
   
     try {
-      // Find the student by ID
+
       const student = await Student.findById(studentId);
   
       if (!student) {
         return res.status(404).json({ message: 'Student not found' });
       }
   
-      // Check if the course exists
+      
       const course = await Course.findById(courseId);
       if (!course) {
         return res.status(404).json({ message: 'Course not found' });
       }
+      
+      const alreadyPurchased = student.purchasedCourses.some(
+        (purchasedCourseId) => purchasedCourseId.toString() === course._id.toString()
+      );
   
-      // Check if the course is already in the cart
+      if (alreadyPurchased) {
+        return res.status(409).json({ message: 'Course already purchased' });
+      }
+      
       const isCourseInCart = student.cart.some(item => item?.courseId?.toString() === courseId);
     if (isCourseInCart) {
       return res.status(400).json({ message: 'Course already in cart' });
     }
   
-      // Add course to cart with its price
+      
       student.cart.push({ courseId: course._id, price: course.price });
       await student.save();
   
-      // Calculate the total amount
+      
       const totalAmount = student.cart.reduce((total, item) => total + item.price, 0);
   
       return res.status(200).json({

@@ -57,7 +57,7 @@ const Register = async (req, res) => {
             email,
             password: hashedPassword, // Store the hashed password
             degree,
-            resume: req.fileUrl, // Cloudinary URL for the uploaded file
+            resume: req.fileUrl, 
         });
 
         await mentor.save();
@@ -70,6 +70,7 @@ const Register = async (req, res) => {
 
 const Login = async (req, res) => {
     const { email, password } = req.body;
+    
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required' });
     }

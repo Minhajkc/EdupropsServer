@@ -472,6 +472,36 @@ const deleteLesson = async (req,res) =>{
     }
 }
 
+const getCourseDetailsForMentor = async (req, res) => {
+    try {
+
+        const courses = await Course.find().select('title _id category');
+        
+     
+        const categoryIds = [...new Set(courses.flatMap(course => course.category))];
+        
+  
+        const categories = await Category.find({ _id: { $in: categoryIds } }).select('_id name');
+
+        const categoryMap = categories.reduce((map, category) => {
+            map[category._id.toString()] = category.name;
+            return map;
+        }, {});
+
+
+        const coursesWithCategoryNames = courses.map(course => ({
+            title: course.title,
+            courseId: course._id,
+            categoryName: categoryMap[course.category.toString()] || 'Unknown'
+        }));
+  
+
+
+        res.json(coursesWithCategoryNames);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
 
 module.exports = {
    AdminLogin,
@@ -494,5 +524,6 @@ module.exports = {
    getCourseById,
    updateCourse,
    AddVideo,
-   deleteLesson
+   deleteLesson,
+   getCourseDetailsForMentor
 };
