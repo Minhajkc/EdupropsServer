@@ -24,6 +24,8 @@ router.delete('/removeFromCart/:courseId',verifyTokenStudent,studentController.r
 router.post('/createOrder',verifyTokenStudent,studentController.CreateOrder)
 router.post('/verifyPayment',verifyTokenStudent,studentController.verifyPayment)
 router.post('/savePurchase',verifyTokenStudent,studentController.savePurchase)
+router.get('/categories/search',studentController.searchCategories);
+router.get('/category/:id/courses', studentController.getCategoryCoursesById);
 
 
 

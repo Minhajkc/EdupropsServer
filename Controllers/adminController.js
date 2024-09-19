@@ -239,10 +239,9 @@ const createCourse = async (req, res) => {
             image: imageUrl,
         });
 
-        // Save the course to the database
+
         await newCourse.save();
 
-        // Send a response with the created course
         res.status(201).json(newCourse);
 
     } catch (error) {
@@ -503,6 +502,117 @@ const getCourseDetailsForMentor = async (req, res) => {
     }
 };
 
+const editLessonVideo = async (req, res) => {
+    const { courseId, lessonId } = req.params;
+    const { title, description, lessonIndex,editingVideoIndex } = req.body; 
+    const videoFiles = req.files; 
+
+    try {
+        // Find the course by courseId
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        // Find the specific lesson by lessonId within the course
+        const lesson = course.lessons.id(lessonId);
+        if (!lesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        // Update lesson details (title, description)
+        lesson.title = title || lesson.title;
+        lesson.description = description || lesson.description;
+
+        // Handle video files update if they exist
+        if (videoFiles && Object.keys(videoFiles).length > 0) {
+            const uploadedVideos = await Promise.all(
+                Object.values(videoFiles).map(async (file) => {
+                    try {
+                        const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                            resource_type: 'video',
+                            folder: 'Videos'
+                        });
+                        return result.secure_url;
+                    } catch (uploadError) {
+                        console.error('Cloudinary upload error:', uploadError.message);
+                        throw uploadError;
+                    }
+                })
+            );
+
+          
+            if (!Array.isArray(lesson.url)) {
+                lesson.url = [];
+            }
+
+            
+            if (editingVideoIndex !== undefined && !isNaN(editingVideoIndex)) {
+                const index = parseInt(editingVideoIndex, 10); 
+
+                if (index >= 0 && index < lesson.url.length) {
+                    
+                    lesson.url[index] = uploadedVideos[0];
+                } else {
+                    return res.status(400).json({ message: 'Invalid lesson index' });
+                }
+            } else {
+                
+                lesson.url.push(...uploadedVideos);
+            }
+        }
+
+        // Save the updated course document
+        await course.save();
+
+        res.json({ message: 'Lesson updated successfully', lesson });
+    } catch (err) {
+        console.error('editLessonVideo error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+const updateAdminSettings = async (req, res) => {
+    try {
+        const { tax, discount } = req.body;
+
+
+        const admin = await Admin.findOne(); // Modify this if you need to find a specific admin
+
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+
+        admin.tax = tax;
+        admin.discount = discount;
+        await admin.save();
+
+        res.status(200).json({ message: 'Updated successfully', admin });
+    } catch (error) {
+        console.error('Error updating admin settings:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const getAdminSettings = async (req, res) => {
+    try {
+        // Fetch the first admin document (assuming there's only one admin or you have a specific way to fetch settings)
+        const admin = await Admin.findOne(); 
+
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin settings not found' });
+        }
+
+        // Extract tax and discount from the admin document
+        const { tax, discount } = admin;
+        res.status(200).json({ tax, discount });
+    } catch (error) {
+        console.error('Error fetching admin settings:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
    AdminLogin,
    checkAuth,
@@ -525,5 +635,8 @@ module.exports = {
    updateCourse,
    AddVideo,
    deleteLesson,
-   getCourseDetailsForMentor
+   getCourseDetailsForMentor,
+   editLessonVideo,
+   updateAdminSettings,
+   getAdminSettings
 };

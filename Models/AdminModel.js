@@ -7,6 +7,8 @@ const AdminSchema = new mongoose.Schema({
     lastName: String,
     createdAt: { type: Date, default: Date.now },
     lastLogin: Date,
+    tax: { type: Number, default: 0 }, // New field for tax
+    discount: { type: Number, default: 0 }, // New field for discount
     advertisements: [{
         title: { type: String, required: true },
         description: { type: String, required: true },

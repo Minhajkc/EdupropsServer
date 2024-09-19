@@ -35,6 +35,12 @@ router.put('/Admin/addVideo/:id',verifyTokenAdmin, fileUpload({
 router.delete('/Admin/courses/:courseId/lessons/:lessonIndex', verifyTokenAdmin,AdminController.deleteLesson);
 router.post('/Admin/logout',AdminController.Logout)
 router.get('/Admin/coursedetailsmentor',verifyTokenAdmin,AdminController.getCourseDetailsForMentor)
+router.put('/Admin/editVideo/:courseId/:lessonId', verifyTokenAdmin, fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}), timeout(120000), AdminController.editLessonVideo);
+router.put('/Admin/settings',verifyTokenAdmin,AdminController.updateAdminSettings);
+router.get('/Admin/settings', verifyTokenAdmin,AdminController.getAdminSettings);
 
 
 

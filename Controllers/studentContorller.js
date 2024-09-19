@@ -9,6 +9,7 @@ const { sendOtpEmail } = require('../config/email');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const Category = require('../Models/CourseCategory')
 const Course = require('../Models/Course')
+const Admin = require('../Models/AdminModel')
 require('dotenv').config();
 
 
@@ -421,45 +422,55 @@ const addToCart = async (req, res) => {
   
   const getCartItems = async (req, res) => {
     try {
-      const studentId = req.student;
-  
-      const student = await Student.findById(studentId).populate('cart.courseId');
+        const studentId = req.student;
 
-      if (!student) {
-        return res.status(404).json({ message: 'Student not found' });
-      }
-  
-      let subtotal = 0;
-      const transformedCourses = student.cart.map(item => {
-        subtotal += item.courseId.price;
-  
-        return {
-          ...item.courseId._doc, // Spread the course data
-          lessonsCount: item.courseId.lessons.length, // Add lessons count
-          price: item.courseId.price // Include the course price
-        };
-      });
-  
-      const discount = 5; // Apply any logic for discount here
-      const tax = 20; // Apply tax logic here
-      const total = subtotal - discount + tax;
-  
-      transformedCourses.forEach(course => {
-        delete course.lessons;
-      });
-  
-      res.status(200).json({
-        courses: transformedCourses,
-        subtotal,
-        discount,
-        tax,
-        total,
-      });
+        // Fetch the student and populate cart items
+        const student = await Student.findById(studentId).populate('cart.courseId');
+
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        // Fetch the admin settings for discount and tax
+        const adminSettings = await Admin.findOne();
+        if (!adminSettings) {
+            return res.status(500).json({ message: 'Admin settings not found' });
+        }
+
+        const { tax, discount } = adminSettings;
+
+        let subtotal = 0;
+        const transformedCourses = student.cart.map(item => {
+            subtotal += item.courseId.price;
+
+            return {
+                ...item.courseId._doc, // Spread the course data
+                lessonsCount: item.courseId.lessons.length, // Add lessons count
+                price: item.courseId.price // Include the course price
+            };
+        });
+
+        const total = (subtotal - discount) * (1 + tax / 100);
+
+
+   
+        transformedCourses.forEach(course => {
+            delete course.lessons;
+        });
+
+        res.status(200).json({
+            courses: transformedCourses,
+            subtotal,
+            discount,
+            tax,
+            total,
+        });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server error, please try again later' });
+        console.error(error);
+        res.status(500).json({ message: 'Server error, please try again later' });
     }
-  };
+};
+
 
   const removeFromCart = async (req, res) => {
   
@@ -563,8 +574,53 @@ const addToCart = async (req, res) => {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   };
+
+  const searchCategories = async (req, res) => {
+    try {
+      const searchTerm = req.query.searchTerm || ''; 
+      const categories = await Category.find({
+        name: { $regex: searchTerm, $options: 'i' }, 
+      });
+  
+      res.status(200).json(categories);
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching categories', error });
+    }
+  };
   
   
+  const getCategoryCoursesById = async (req, res) => {
+    const { id } = req.params; // Category ID
+    const { searchTerm, sortOption } = req.query; // Search and Sort Query Params
+  
+    try {
+      // Search Filter: Check if searchTerm is provided
+      let searchQuery = {};
+      if (searchTerm) {
+        searchQuery.title = { $regex: searchTerm, $options: 'i' }; // Case-insensitive search on course title
+      }
+  
+      // Find courses within the category and apply search filter
+      let courses = await Course.find({ category: id, ...searchQuery });
+  
+      // Sorting Logic
+      if (sortOption) {
+        if (sortOption === 'price-asc') {
+          courses = courses.sort((a, b) => a.price - b.price);
+        } else if (sortOption === 'price-desc') {
+          courses = courses.sort((a, b) => b.price - a.price);
+        } else if (sortOption === 'title-asc') {
+          courses = courses.sort((a, b) => a.title.localeCompare(b.title));
+        } else if (sortOption === 'title-desc') {
+          courses = courses.sort((a, b) => b.title.localeCompare(a.title));
+        }
+      }
+  
+      res.status(200).json(courses);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch courses', error });
+    }
+  };
   
   
 
@@ -586,5 +642,7 @@ module.exports = {
    removeFromCart,
    CreateOrder,
    verifyPayment,
-   savePurchase
+   savePurchase,
+   searchCategories,
+   getCategoryCoursesById
 };
