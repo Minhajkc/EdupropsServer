@@ -78,7 +78,11 @@ const verifyOtp = async (req, res) => {
 
         const accessToken = generateAccessToken(savedStudent);
         const refreshToken = generateRefreshToken(savedStudent);
+        
 
+        savedStudent.refreshToken = refreshToken;
+        savedStudent.refreshTokenExpires = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+        await savedStudent.save();
         
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
@@ -130,6 +134,10 @@ const login = async (req, res) => {
 
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
+
+        user.refreshToken = refreshToken;
+        user.refreshTokenExpires = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+        await user.save();
 
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
@@ -192,6 +200,10 @@ const googleauth = async (req, res) => {
    
         const accessToken = generateAccessToken(student);
         const refreshToken = generateRefreshToken(student);
+
+        student.refreshToken = refreshToken;
+        student.refreshTokenExpires = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+        await student.save(); // Save the user with updated tokens
 
         res.cookie('accessToken', accessToken, {
             httpOnly: true,
@@ -365,6 +377,7 @@ const logout = async (req,res) =>{
     try {
 
         res.clearCookie('accessToken'); 
+        res.clearCookie('refreshToken');
         res.status(200).json({ message: 'Logout successful' });
     } catch (error) {
         res.status(500).json({ message: 'Error logging out', error });
@@ -591,19 +604,17 @@ const addToCart = async (req, res) => {
   
   const getCategoryCoursesById = async (req, res) => {
     const { id } = req.params; // Category ID
-    const { searchTerm, sortOption } = req.query; // Search and Sort Query Params
+    const { searchTerm, sortOption } = req.query; 
   
     try {
-      // Search Filter: Check if searchTerm is provided
+
       let searchQuery = {};
       if (searchTerm) {
-        searchQuery.title = { $regex: searchTerm, $options: 'i' }; // Case-insensitive search on course title
+        searchQuery.title = { $regex: searchTerm, $options: 'i' }; 
       }
-  
-      // Find courses within the category and apply search filter
+
       let courses = await Course.find({ category: id, ...searchQuery });
   
-      // Sorting Logic
       if (sortOption) {
         if (sortOption === 'price-asc') {
           courses = courses.sort((a, b) => a.price - b.price);

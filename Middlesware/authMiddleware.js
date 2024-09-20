@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
+const Student = require('../Models/Student')
 
 
 
@@ -23,23 +24,45 @@ const verifyTokenAdmin = (req, res, next) => {
     }
 };
 
-const verifyTokenStudent = (req, res, next) => {
+const verifyTokenStudent = async (req, res, next) => {
 
-    const token = req.cookies.accessToken;
-
-    if (!token) {
-     
-        return res.status(401).json({ message: 'No token provided' });
+    let accessToken = req.cookies.accessToken;
+    let refreshToken = req.cookies.refreshToken;
+    
+    if (!accessToken && !refreshToken) {
+        return res.status(401).json({ message: 'No token provided. Please log in.' });
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        if (!decoded.role == 'student') {
-            return res.status(403).json({ message: 'Access denied. Not a student.' });
+        const decodedRefreshToken = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const student = await Student.findById(decodedRefreshToken.id);
+        if (!student) {
+            return res.status(403).json({ message: 'User not found.' });
         }
-        req.user = decoded;
-        req.student = decoded.id
-        next();
+
+        if (student.refreshToken !== refreshToken || new Date() > student.refreshTokenExpires) {
+            return res.status(403).json({ message: 'Invalid or expired refresh token.' });
+        }
+
+        accessToken = jwt.sign(
+            { id: student._id, role: 'student' }, 
+            process.env.ACCESS_TOKEN_SECRET, 
+            { expiresIn: '15m' } 
+        );
+
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', 
+            maxAge: 15 * 60 * 1000, 
+        });
+
+
+        req.user = decodedRefreshToken; 
+        req.student = decodedRefreshToken.id;
+        next()
+
+
+      
     } catch (err) {
         console.error(err);
         res.status(403).json({ message: 'Invalid token.' });
