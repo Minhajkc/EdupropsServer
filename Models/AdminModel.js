@@ -20,7 +20,17 @@ const AdminSchema = new mongoose.Schema({
         isActive: { type: Boolean, default: true },
         createdAt: { type: Date, default: Date.now },
         updatedAt: { type: Date, default: Date.now }
-    }]
+    }],
+    goldRate: {
+        type: Number,
+        required: true,
+        default: 600, 
+      },
+      platinumRate: {
+        type: Number,
+        required: true,
+        default: 1200, 
+      }
 });
 
 const Admin = mongoose.model('Admin', AdminSchema);

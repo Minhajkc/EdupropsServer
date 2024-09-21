@@ -10,6 +10,7 @@ const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUti
 const Category = require('../Models/CourseCategory')
 const Course = require('../Models/Course')
 const Admin = require('../Models/AdminModel')
+const Mentor = require('../Models/Mentor')
 require('dotenv').config();
 
 
@@ -518,7 +519,7 @@ const addToCart = async (req, res) => {
       const { amount, currency } = req.body; // Get amount and currency from the request
   
       const options = {
-        amount: amount * 100, // Razorpay expects the amount in paise (1 INR = 100 paise)
+        amount: Math.round(amount * 100) ,
         currency: currency || 'INR', // Default to INR if no currency is provided
         receipt: crypto.randomBytes(10).toString('hex'), // Unique receipt ID
       };
@@ -632,6 +633,17 @@ const addToCart = async (req, res) => {
       res.status(500).json({ message: 'Failed to fetch courses', error });
     }
   };
+
+  const GetMentorsCarousel = async (req,res) => {
+    try {
+        const mentors = await Mentor.find(); 
+        console.log(mentors)
+        res.status(200).json(mentors);
+      } catch (error) {
+        console.error('Error fetching mentors:', error);
+        res.status(500).json({ message: 'Error fetching mentors' });
+      }
+  }
   
   
 
@@ -655,5 +667,6 @@ module.exports = {
    verifyPayment,
    savePurchase,
    searchCategories,
-   getCategoryCoursesById
+   getCategoryCoursesById,
+   GetMentorsCarousel
 };

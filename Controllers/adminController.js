@@ -613,6 +613,61 @@ const getAdminSettings = async (req, res) => {
     }
 };
 
+const updateSubscriptionRates = async (req, res) => {
+    try {
+      const { goldRate, platinumRate } = req.body;
+  
+      // Fetch the current subscription rates from the database
+      const currentAdmin = await Admin.findOne({});
+  
+      // If no document exists, return an error
+      if (!currentAdmin) {
+        return res.status(404).json({ message: 'No subscription rates found. Please create the rates first.' });
+      }
+  
+      // Use current values if provided values are null or empty
+      const updatedRates = {
+        goldRate: (goldRate !== undefined && goldRate !== null && goldRate !== '') ? goldRate : currentAdmin.goldRate,
+        platinumRate: (platinumRate !== undefined && platinumRate !== null && platinumRate !== '') ? platinumRate : currentAdmin.platinumRate,
+      };
+  
+      // Perform the update
+      const updatedAdmin = await Admin.findOneAndUpdate(
+        {}, // Assuming there's only one admin document
+        { $set: updatedRates }, // Only update the fields provided
+        { new: true } // Return the updated document
+      );
+  
+      return res.status(200).json({ message: 'Subscription rates updated successfully!', updatedAdmin });
+    } catch (error) {
+      console.error('Error updating subscription rates:', error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+  };
+  
+  
+  
+  
+
+  const getSubscriptionRates = async (req, res) => {
+    try {
+ 
+      const adminData = await Admin.findOne({}, 'goldRate platinumRate'); // Only select the rates
+  
+      if (!adminData) {
+        return res.status(404).json({ message: 'Admin data not found' });
+      }
+  
+      return res.status(200).json({
+        goldRate: adminData.goldRate,
+        platinumRate: adminData.platinumRate,
+      });
+    } catch (error) {
+      console.error('Error fetching subscription rates:', error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+  };
+
 module.exports = {
    AdminLogin,
    checkAuth,
@@ -638,5 +693,7 @@ module.exports = {
    getCourseDetailsForMentor,
    editLessonVideo,
    updateAdminSettings,
-   getAdminSettings
+   getAdminSettings,
+   updateSubscriptionRates,
+   getSubscriptionRates
 };
