@@ -29,7 +29,7 @@ const AdminSchema = new mongoose.Schema({
       platinumRate: {
         type: Number,
         required: true,
-        default: 1200, 
+        default: 1100, 
       }
 });
 
