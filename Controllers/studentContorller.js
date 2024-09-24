@@ -637,7 +637,7 @@ const addToCart = async (req, res) => {
   const GetMentorsCarousel = async (req,res) => {
     try {
         const mentors = await Mentor.find(); 
-        console.log(mentors)
+
         res.status(200).json(mentors);
       } catch (error) {
         console.error('Error fetching mentors:', error);
@@ -647,29 +647,125 @@ const addToCart = async (req, res) => {
 
   const CreateOrderSubscription = async (req, res) => {
     try {
-      const { amount, currency } = req.body; // Get amount and currency from the request
+      const { amount, currency, subscriptionPlan } = req.body; // Get amount, currency, and plan details from the request
+      const studentId = req.student; // Assuming studentId is available in req.student
   
+      // Fetch the student document to check their current subscription
+      const student = await Student.findById(studentId);
+  
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+  
+      // Check if the user is already subscribed to Gold or Platinum
+      if (student.membershipType === 'platinum') {
+        return res.status(400).json({ error: 'You are already subscribed to Platinum. You cannot purchase Gold or any other lower subscription.' });
+      }
+  
+      if (student.membershipType === 'gold' && subscriptionPlan === 'gold') {
+        return res.status(400).json({ error: 'You are already subscribed to Gold. You cannot purchase Gold again.' });
+      }
+  
+      if (student.membershipType === 'gold' && subscriptionPlan === 'platinum') {
+        // Allow upgrading from Gold to Platinum
+        console.log('User is upgrading from Gold to Platinum');
+      }
+  
+      // If validation passes, proceed with creating the order
       const options = {
-        amount: Math.round(amount * 100) ,
+        amount: Math.round(amount * 100), // Convert amount to paise (minor units)
         currency: currency || 'INR', // Default to INR if no currency is provided
         receipt: crypto.randomBytes(10).toString('hex'), // Unique receipt ID
       };
   
-
+      // Create order with Razorpay
       const order = await razorpay.orders.create(options);
   
       if (!order) {
-        return res.status(500).send('Some error occurred');
+        return res.status(500).send('Order creation failed');
       }
   
+      // Return order details if successful
       return res.json(order);
     } catch (error) {
       // Send error response if something goes wrong
       console.error('Error creating Razorpay order:', error);
       res.status(500).send('Server Error');
     }
-  }
+  };
   
+  const verifyPaymentSubscription = async(req,res)=>{
+
+    try {
+        const { order_id, payment_id, signature } = req.body;
+
+        const body = order_id + '|' + payment_id;
+        const expectedSignature = crypto
+          .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+          .update(body.toString())
+          .digest('hex');
+    
+  
+        if (expectedSignature === signature) {
+          return res.json({ status: 'success' });
+        } else {
+          return res.status(400).json({ status: 'failure' });
+        }
+      } catch (error) {
+        res.status(500).send(error);
+      }
+  }
+
+  const savePurchaseSubscription = async (req, res) => {
+
+    try {
+      const studentId = req.student;
+      const { subscriptionPlan } = req.body; // Expecting the plan name like 'Gold' or 'Platinum'
+  
+      // Fetch the student document
+      const student = await Student.findById(studentId);
+  
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+  
+      // Fetch all categories
+      const categories = await Category.find(); // Assuming 'Category' is the model for categories
+  
+      if (!categories || categories.length === 0) {
+        return res.status(404).json({ error: 'No categories found' });
+      }
+  
+      // Fetch courses from each category
+      const courseLimit = subscriptionPlan === 'platinum' ? 3 : 2;
+      let selectedCourses = [];
+      for (const category of categories) {
+        // Find courses belonging to this category (assuming category._id corresponds to Course.category)
+        const courses = await Course.find({ category: category._id }).limit(courseLimit);
+  
+        // Add the selected courses from this category to the list
+        selectedCourses = [...selectedCourses, ...courses];
+      }
+  
+      // Update student's subscription with selected courses
+      student.subscription = selectedCourses.map(course => course._id); // Save course IDs in subscription array
+      if(subscriptionPlan === 'platinum'){
+        student.membershipType = 'platinum'
+      }else if (subscriptionPlan === 'gold'){
+        student.membershipType = 'gold'
+      }else{
+        student.membershipType = 'silver'
+      }
+  
+      // Save updated student document
+      await student.save();
+  
+      return res.json({ status: 'success', subscribedCourses: student.subscription });
+    } catch (error) {
+      console.error('Error saving purchase:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  };
   
 
 module.exports = {
@@ -694,5 +790,7 @@ module.exports = {
    searchCategories,
    getCategoryCoursesById,
    GetMentorsCarousel,
-   CreateOrderSubscription
+   CreateOrderSubscription,
+   verifyPaymentSubscription,
+   savePurchaseSubscription
 };
