@@ -27,6 +27,7 @@ router.post('/savePurchase',verifyTokenStudent,studentController.savePurchase)
 router.get('/categories/search',studentController.searchCategories);
 router.get('/category/:id/courses', studentController.getCategoryCoursesById);
 router.get('/mentorCarousel',studentController.GetMentorsCarousel)
+router.post('/createOrderSubscription',studentController.CreateOrderSubscription)
 
 
 

@@ -644,6 +644,31 @@ const addToCart = async (req, res) => {
         res.status(500).json({ message: 'Error fetching mentors' });
       }
   }
+
+  const CreateOrderSubscription = async (req, res) => {
+    try {
+      const { amount, currency } = req.body; // Get amount and currency from the request
+  
+      const options = {
+        amount: Math.round(amount * 100) ,
+        currency: currency || 'INR', // Default to INR if no currency is provided
+        receipt: crypto.randomBytes(10).toString('hex'), // Unique receipt ID
+      };
+  
+
+      const order = await razorpay.orders.create(options);
+  
+      if (!order) {
+        return res.status(500).send('Some error occurred');
+      }
+  
+      return res.json(order);
+    } catch (error) {
+      // Send error response if something goes wrong
+      console.error('Error creating Razorpay order:', error);
+      res.status(500).send('Server Error');
+    }
+  }
   
   
 
@@ -668,5 +693,6 @@ module.exports = {
    savePurchase,
    searchCategories,
    getCategoryCoursesById,
-   GetMentorsCarousel
+   GetMentorsCarousel,
+   CreateOrderSubscription
 };
