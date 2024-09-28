@@ -3,6 +3,7 @@ const Admin = require('../Models/AdminModel');
 const Student = require('../Models/Student');
 const Mentor = require('../Models/Mentor')
 const Course = require('../Models/Course')
+const Ad = require('../Models/Ad')
 const Category = require('../Models/CourseCategory')
 const cloudinary = require('../Services/cloudinaryConfig');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
@@ -668,6 +669,82 @@ const updateSubscriptionRates = async (req, res) => {
     }
   };
 
+  const AddAds = async (req, res) => {
+    try {
+      let imageUrl;
+  
+      // Check if an image file is uploaded
+      if (req.files && req.files.image) {
+        const image = req.files.image;
+        
+        // Upload image to Cloudinary
+        const result = await cloudinary.uploader.upload(image.tempFilePath, {
+          folder: 'CourseIconImage', 
+        });
+        imageUrl = result.secure_url; // Get the secure URL of the uploaded image
+      }
+  
+      const ad = new Ad({
+        ...req.body,
+        image: imageUrl, // Set the image URL in the ad object
+      });
+  
+      await ad.save();
+      res.status(201).json(ad);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  const GetAds = async (req,res)=>{
+    try {
+        const ads = await Ad.find();
+        res.status(200).json(ads);
+      } catch (error) {
+        res.status(400).json({ error: error.message });
+      }
+  }
+
+  const EditAds = async (req, res) => {
+    try {
+      let imageUrl;
+  
+      // Check if an image file is uploaded
+      if (req.files && req.files.image) {
+        const image = req.files.image;
+  
+        // Upload new image to Cloudinary
+        const result = await cloudinary.uploader.upload(image.tempFilePath, {
+          folder: 'CourseIconImage', 
+        });
+        imageUrl = result.secure_url; // Get the secure URL of the uploaded image
+      }
+  
+      // Find the ad and update it
+      const ad = await Ad.findByIdAndUpdate(req.params.id, {
+        ...req.body,
+        ...(imageUrl && { image: imageUrl }), // Update image only if a new one is uploaded
+      }, { new: true });
+  
+      if (!ad) return res.status(404).json({ error: 'Ad not found' });
+      
+      res.status(200).json(ad);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+  
+  const DeleteAds = async (req,res)=>{
+    try {
+        const ad = await Ad.findByIdAndDelete(req.params.id);
+        if (!ad) return res.status(404).json({ error: 'Ad not found' });
+        res.status(200).json({ message: 'Ad deleted successfully' });
+      } catch (error) {
+        res.status(400).json({ error: error.message });
+      }
+  }
+
+
 module.exports = {
    AdminLogin,
    checkAuth,
@@ -695,5 +772,9 @@ module.exports = {
    updateAdminSettings,
    getAdminSettings,
    updateSubscriptionRates,
-   getSubscriptionRates
+   getSubscriptionRates,
+   GetAds,
+   AddAds,
+   EditAds,
+   DeleteAds
 };

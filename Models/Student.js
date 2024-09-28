@@ -8,7 +8,7 @@ const StudentSchema = new mongoose.Schema({
     lastName: String,
     membershipType: { type: String, enum: ['silver', 'gold', 'platinum'], default: 'silver' },
     purchasedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
-    subscription:[],
+    subscription:[{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
     refreshToken: {
       type: String, 
   },

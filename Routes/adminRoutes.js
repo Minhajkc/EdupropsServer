@@ -43,7 +43,16 @@ router.put('/Admin/settings',verifyTokenAdmin,AdminController.updateAdminSetting
 router.get('/Admin/settings', verifyTokenAdmin,AdminController.getAdminSettings);
 router.post('/Admin/subscription/update-rates',verifyTokenAdmin,AdminController.updateSubscriptionRates);
 router.get('/Admin/get-rates-subscription',AdminController.getSubscriptionRates);
-
+router.post('/Admin/ads',verifyTokenAdmin,fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}),AdminController.AddAds)
+router.get('/Admin/ads',verifyTokenAdmin,AdminController.GetAds)
+router.put('/Admin/ads/:id',verifyTokenAdmin,fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+}),AdminController.EditAds)
+router.delete('/Admin/ads/:id',verifyTokenAdmin,AdminController.DeleteAds)
 
 
 module.exports = router;

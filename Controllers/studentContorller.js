@@ -11,6 +11,7 @@ const Category = require('../Models/CourseCategory')
 const Course = require('../Models/Course')
 const Admin = require('../Models/AdminModel')
 const Mentor = require('../Models/Mentor')
+const Ad = require('../Models/Ad')
 require('dotenv').config();
 
 
@@ -285,12 +286,15 @@ const passwordResetResetPassword = async (req, res) => {
 
 const getStudentProfile = async (req, res) => {
     try {
-        // Fetch student with populated purchasedCourses
+
         const student = await Student.findById(req.user.id)
             .select('-password') // Exclude password field
             .populate({
                 path: 'purchasedCourses', // Field to populate
-            });
+            }) .populate({
+              path: 'subscription', // Populate subscriptions field
+          });
+
 
         if (!student) {
             return res.status(404).json({ message: 'Student not found.' });
@@ -760,12 +764,25 @@ const addToCart = async (req, res) => {
       // Save updated student document
       await student.save();
   
-      return res.json({ status: 'success', subscribedCourses: student.subscription });
+      return res.json({ status: 'success', subscribedCourses: student.subscription , membershipType:student.membershipType });
     } catch (error) {
       console.error('Error saving purchase:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   };
+
+
+
+    const getAllAds = async (req, res) => {
+      try {
+        const ads = await Ad.find(); // Fetch all ads from the database
+        res.status(200).json(ads);
+      } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch ads', error });
+      
+      }
+    }
+
   
 
 module.exports = {
@@ -792,5 +809,6 @@ module.exports = {
    GetMentorsCarousel,
    CreateOrderSubscription,
    verifyPaymentSubscription,
-   savePurchaseSubscription
+   savePurchaseSubscription,
+   getAllAds
 };

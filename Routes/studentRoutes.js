@@ -30,6 +30,7 @@ router.get('/mentorCarousel',studentController.GetMentorsCarousel)
 router.post('/createOrderSubscription',verifyTokenStudent,studentController.CreateOrderSubscription)
 router.post('/verifyPaymentSubscription',studentController.verifyPaymentSubscription)
 router.post('/savePurchaseSubscription',verifyTokenStudent,studentController.savePurchaseSubscription)
+router.get('/ads',studentController.getAllAds)
 
 
 
