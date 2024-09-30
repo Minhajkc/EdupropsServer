@@ -407,9 +407,12 @@ const addToCart = async (req, res) => {
         return res.status(404).json({ message: 'Course not found' });
       }
       
+
+
       const alreadyPurchased = student.purchasedCourses.some(
         (purchasedCourseId) => purchasedCourseId.toString() === course._id.toString()
       );
+      
   
       if (alreadyPurchased) {
         return res.status(409).json({ message: 'Course already purchased' });

@@ -1,6 +1,7 @@
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const mentorController = require('../Controllers/mentorController');
+const {verifyTokenMentor} = require('../Middlesware/authMiddleware')
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.post('/Mentor/MentorRegister', fileUpload(),async (req, res) => {
 });
 
 router.post('/Mentor/Login',mentorController.Login)
-router.post('/Mentor/password-reset/send-otp',mentorController.passwordResetSendOtp);
+router.post('/Mentor/password-reset/send-otp',verifyTokenMentor,mentorController.passwordResetSendOtp);
 router.post('/Mentor/password-reset/verify-otp',mentorController.passwordResetVerifyOtp );
 router.post('/Mentor/password-reset/reset-password',mentorController.passwordResetResetPassword );
 

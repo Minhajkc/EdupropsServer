@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
+const jwt = require('jsonwebtoken');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const Mentor = require('../Models/Mentor')
@@ -9,6 +10,7 @@ const streamifier = require('streamifier');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const { sendOtpEmail } = require('../config/email');
 
+
 const passwordResetOtps = {};
 
 const generateOtp = () => {
@@ -16,7 +18,7 @@ const generateOtp = () => {
 };
 
 const uploadFileToCloudinary = (fileBuffer) => {
-    console.log('helo')
+
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           { resource_type: 'raw' },
@@ -77,6 +79,7 @@ const Login = async (req, res) => {
 
     try {
         const mentor = await Mentor.findOne({ email });
+        console.log(mentor)
 
         
         if (!mentor) {
@@ -103,9 +106,6 @@ const Login = async (req, res) => {
             return res.status(400).json({ message: 'Your account is pending verification' });
         }
 
-
-
-
        
         const match = await bcrypt.compare(password, mentor.password);
 
@@ -113,13 +113,20 @@ const Login = async (req, res) => {
             return res.status(401).json({ message: 'Password not match' });
         }
 
-        const accessToken = generateAccessToken(mentor);
-        const refreshToken = generateRefreshToken(mentor);
+        const accessToken = jwt.sign(
+            { id: mentor._id, username: mentor.username, role: 'mentor' },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: '1h' }
+        );
+        
+        res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', 
+            maxAge: 15 * 60 * 1000, 
+        });
 
         res.status(200).json({
             message: 'Login successful',
-            accessToken,
-            refreshToken
         });
     } catch (error) {
         console.error('Login error:', error);
