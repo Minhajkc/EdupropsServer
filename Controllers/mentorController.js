@@ -36,8 +36,7 @@ const uploadFileToCloudinary = (fileBuffer) => {
   
 
 const Register = async (req, res) => {
-    console.log(req.body);
-    
+
     try {
         const { firstName, lastName, username, email, password, confirmPassword, degree } = req.body;
 
@@ -71,6 +70,7 @@ const Register = async (req, res) => {
 };
 
 const Login = async (req, res) => {
+
     const { email, password } = req.body;
     
     if (!email || !password) {
@@ -79,9 +79,7 @@ const Login = async (req, res) => {
 
     try {
         const mentor = await Mentor.findOne({ email });
-        console.log(mentor)
-
-        
+     
         if (!mentor) {
             return res.status(404).json({ message: 'Mentor not found' });
         }
@@ -192,6 +190,30 @@ const passwordResetResetPassword = async (req, res) => {
     }
 };
 
+const getMentorProfile = async (req, res) => {
+    try {
+        const mentor = await Mentor.findById(req.user.id).select('-password');
+        
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found.' });
+        }
+
+        res.status(200).json({ mentor });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error.' });
+    }
+};
+
+
+const logoutMentor = async (req, res) => {
+    try {
+        res.clearCookie('accessToken'); 
+        res.status(200).json({ message: 'Logout successful' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error logging out', error });
+    }
+  };
 
 
 module.exports = {
@@ -200,5 +222,7 @@ module.exports = {
     Login,
     passwordResetSendOtp,
     passwordResetVerifyOtp,
-    passwordResetResetPassword
+    passwordResetResetPassword,
+    getMentorProfile,
+    logoutMentor
 };
