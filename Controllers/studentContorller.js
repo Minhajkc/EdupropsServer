@@ -284,28 +284,56 @@ const passwordResetResetPassword = async (req, res) => {
 };
 
 
+
+
 const getStudentProfile = async (req, res) => {
-    try {
+  try {
+    const student = await Student.findById(req.user.id)
+      .select('-password') // Exclude password field
+      .populate({
+        path: 'purchasedCourses', // Populate purchased courses
+      })
+      .populate({
+        path: 'subscription', // Populate subscriptions
+      });
 
-        const student = await Student.findById(req.user.id)
-            .select('-password') // Exclude password field
-            .populate({
-                path: 'purchasedCourses', // Field to populate
-            }) .populate({
-              path: 'subscription', // Populate subscriptions field
-          });
-
-
-        if (!student) {
-            return res.status(404).json({ message: 'Student not found.' });
-        }
-
-        res.status(200).json({ student });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error.' });
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found.' });
     }
+
+    // Step 1: Fetch instructors from purchased courses
+    const purchasedCourses = await Course.find({ _id: { $in: student.purchasedCourses } })
+      .select('instructor') // Only select instructor field
+      .lean(); // Convert Mongoose documents to plain JavaScript objects
+
+    const purchasedInstructors = purchasedCourses.map(course => course.instructor);
+
+    // Step 2: Fetch instructors from subscriptions
+    const subscriptionCourses = await Course.find({ _id: { $in: student.subscription } })
+      .select('instructor') // Only select instructor field
+      .lean(); // Convert Mongoose documents to plain JavaScript objects
+
+    const subscriptionInstructors = subscriptionCourses.map(course => course.instructor);
+
+    // Step 3: Combine both purchased and subscription instructors
+    let allInstructors = [...purchasedInstructors, ...subscriptionInstructors];
+
+    // Step 4: Filter out invalid ObjectId values
+    allInstructors = allInstructors.filter(id => mongoose.Types.ObjectId.isValid(id));
+
+    // Step 5: Fetch mentor details for valid instructor IDs
+    const mentors = await Mentor.find({ _id: { $in: allInstructors } })
+      .select('username email') // Fetch only necessary fields
+      .lean(); // Convert Mongoose documents to plain JavaScript objects
+  console.log(mentors)
+    // Return the student and mentors details
+    res.status(200).json({ student, mentors });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error.' });
+  }
 };
+
 
 
 

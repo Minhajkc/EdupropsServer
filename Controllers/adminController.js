@@ -128,7 +128,7 @@ const BlockStudent = async (req, res) => {
   
   const GetMentors = async (req, res) => {
     try {
-        const mentors = await Mentor.find();
+        const mentors = await Mentor.find().populate('assignedCourses', 'title');;
         res.status(200).json(mentors);
     } catch (err) {
         console.error('Error fetching mentors:', err);
@@ -211,7 +211,7 @@ const getCategory = async (req,res) =>{
 
 const createCourse = async (req, res) => {
     try {
-        const { title, description, price, instructor, duration, category, whatYouLearn } = req.body;
+        const { title, description, price, duration, category, whatYouLearn } = req.body;
         let imageUrl = '';
 
         if (!title || !description || !price || !duration || !category || !whatYouLearn ) {
@@ -233,7 +233,6 @@ const createCourse = async (req, res) => {
             title,
             description,
             price,
-            instructor,
             duration,
             category,
             whatYouLearn,
@@ -474,34 +473,30 @@ const deleteLesson = async (req,res) =>{
 
 const getCourseDetailsForMentor = async (req, res) => {
     try {
-
-        const courses = await Course.find().select('title _id category');
-        
-     
-        const categoryIds = [...new Set(courses.flatMap(course => course.category))];
-        
-  
-        const categories = await Category.find({ _id: { $in: categoryIds } }).select('_id name');
-
-        const categoryMap = categories.reduce((map, category) => {
-            map[category._id.toString()] = category.name;
-            return map;
-        }, {});
-
-
-        const coursesWithCategoryNames = courses.map(course => ({
-            title: course.title,
-            courseId: course._id,
-            categoryName: categoryMap[course.category.toString()] || 'Unknown'
-        }));
-  
-
-
-        res.json(coursesWithCategoryNames);
+      const courses = await Course.find().select('title _id category');
+      const mentors = await Mentor.find().select('assignedCourses');
+      const assignedCourseIds = mentors.flatMap(mentor => mentor.assignedCourses).filter(Boolean);
+      const availableCourses = courses.filter(course => 
+        !assignedCourseIds.some(assignedCourseId => assignedCourseId.equals(course._id))
+      );
+      const categoryIds = [...new Set(availableCourses.flatMap(course => course.category))];
+      const categories = await Category.find({ _id: { $in: categoryIds } }).select('_id name');
+      const categoryMap = categories.reduce((map, category) => {
+        map[category._id.toString()] = category.name;
+        return map;
+      }, {});
+      const coursesWithCategoryNames = availableCourses.map(course => ({
+        title: course.title,
+        courseId: course._id,
+        categoryName: categoryMap[course.category.toString()] || 'Unknown'
+      }));
+      res.json(coursesWithCategoryNames);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+      res.status(500).json({ message: err.message });
     }
-};
+  };
+  
+  
 
 const editLessonVideo = async (req, res) => {
     const { courseId, lessonId } = req.params;
@@ -744,6 +739,53 @@ const updateSubscriptionRates = async (req, res) => {
       }
   }
 
+  const updateCourseInstructor = async (req, res) => {
+    const { courseId } = req.params;
+    const { mentorId } = req.body;
+  
+    try {
+      // Find the course by ID and update the instructor field
+      const updatedCourse = await Course.findByIdAndUpdate(
+        courseId,
+        { instructor: mentorId }, // Update the instructor field with the mentor ID
+        { new: true } // Return the updated course
+      );
+  
+      if (!updatedCourse) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+  
+      // Find the mentor to check the current assigned course
+      const mentor = await Mentor.findById(mentorId);
+  
+      if (!mentor) {
+        return res.status(404).json({ message: 'Mentor not found' });
+      }
+  
+      // If the mentor already has this course assigned, do not update
+      if (mentor.assignedCourses[0] === courseId) {
+        return res.status(400).json({ message: 'Course is already assigned to this mentor' });
+      }
+  
+      // Set the assignedCourses array to only contain the new courseId (replace any existing value)
+      const updatedMentor = await Mentor.findByIdAndUpdate(
+        mentorId,
+        { assignedCourses: [courseId] }, // Replace the array with just the new courseId
+        { new: true } // Return the updated mentor
+      );
+  
+      return res.status(200).json({
+        message: 'Instructor assigned successfully and mentor updated',
+        course: updatedCourse,
+        mentor: updatedMentor,
+      });
+    } catch (error) {
+      console.error('Error updating course instructor and mentor:', error);
+      return res.status(500).json({ message: 'Server error' });
+    }
+  };
+  
+
 
 module.exports = {
    AdminLogin,
@@ -776,5 +818,6 @@ module.exports = {
    GetAds,
    AddAds,
    EditAds,
-   DeleteAds
+   DeleteAds,
+   updateCourseInstructor
 };

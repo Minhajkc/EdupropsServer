@@ -53,6 +53,6 @@ router.put('/Admin/ads/:id',verifyTokenAdmin,fileUpload({
     tempFileDir: '/tmp/'
 }),AdminController.EditAds)
 router.delete('/Admin/ads/:id',verifyTokenAdmin,AdminController.DeleteAds)
-
+router.put('/Admin/courses/:courseId/instructor',verifyTokenAdmin,AdminController.updateCourseInstructor);
 
 module.exports = router;

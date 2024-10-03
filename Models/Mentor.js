@@ -9,7 +9,7 @@ const MentorSchema = new mongoose.Schema({
   degree: String,
   resume: String,
   specialization: String,
-  courses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
+  assignedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
   createdAt: { type: Date, default: Date.now },
   lastLogin: Date,
   isActive: {
