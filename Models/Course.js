@@ -14,16 +14,11 @@ const CourseSchema = new mongoose.Schema({
       description: String,
       url:[{}]
     }],
-    qAndA: [{
-      question: { type: String, required: true },
-      askedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' },
-      answers: [{
-        answer: { type: String, required: true },
-        answeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Mentor' },
-        createdAt: { type: Date, default: Date.now }
-      }],
-      createdAt: { type: Date, default: Date.now }
-    }],
+    chats: [{
+      message: { type: String, required: true },   // Message content
+      sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' }, // User who sent the message
+      createdAt: { type: Date, default: Date.now }  // Time the message was sent
+    }],    
     enrolledStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

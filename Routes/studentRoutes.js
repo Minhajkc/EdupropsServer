@@ -31,6 +31,8 @@ router.post('/createOrderSubscription',verifyTokenStudent,studentController.Crea
 router.post('/verifyPaymentSubscription',studentController.verifyPaymentSubscription)
 router.post('/savePurchaseSubscription',verifyTokenStudent,studentController.savePurchaseSubscription)
 router.get('/ads',studentController.getAllAds)
+router.post('/courses/:courseId/chat',verifyTokenStudent,studentController.sendChatMessage)
+router.get('/courses/:courseId/chat',verifyTokenStudent,studentController.retrieveChatMessage)
 
 
 

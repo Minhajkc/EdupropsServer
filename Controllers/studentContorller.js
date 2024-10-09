@@ -640,34 +640,35 @@ const addToCart = async (req, res) => {
   
   const getCategoryCoursesById = async (req, res) => {
     const { id } = req.params; // Category ID
-    const { searchTerm, sortOption } = req.query; 
+    const { searchTerm, sortOption } = req.query;
   
     try {
-
-      let searchQuery = {};
+      // Create a search query for the title if a searchTerm is provided
+      let searchQuery = { category: id };
       if (searchTerm) {
-        searchQuery.title = { $regex: searchTerm, $options: 'i' }; 
+        searchQuery.title = { $regex: searchTerm, $options: 'i' }; // Case-insensitive search
       }
-
-      let courses = await Course.find({ category: id, ...searchQuery });
   
-      if (sortOption) {
-        if (sortOption === 'price-asc') {
-          courses = courses.sort((a, b) => a.price - b.price);
-        } else if (sortOption === 'price-desc') {
-          courses = courses.sort((a, b) => b.price - a.price);
-        } else if (sortOption === 'title-asc') {
-          courses = courses.sort((a, b) => a.title.localeCompare(b.title));
-        } else if (sortOption === 'title-desc') {
-          courses = courses.sort((a, b) => b.title.localeCompare(a.title));
-        }
-      }
+      // Map sort options directly to MongoDB field sorting
+      const sortMapping = {
+        'price-asc': { price: 1 },
+        'price-desc': { price: -1 },
+        'title-asc': { title: 1 },
+        'title-desc': { title: -1 }
+      };
+  
+      // Use sortOption or default to an empty object (no sorting)
+      const sortQuery = sortMapping[sortOption] || {};
+  
+      // Fetch courses from the database with search and sorting
+      const courses = await Course.find(searchQuery).sort(sortQuery);
   
       res.status(200).json(courses);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch courses', error });
     }
   };
+  
 
   const GetMentorsCarousel = async (req,res) => {
     try {
@@ -802,8 +803,6 @@ const addToCart = async (req, res) => {
     }
   };
 
-
-
     const getAllAds = async (req, res) => {
       try {
         const ads = await Ad.find(); // Fetch all ads from the database
@@ -812,8 +811,96 @@ const addToCart = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch ads', error });
       
       }
-    }
+  }
 
+
+
+  // POST route to send a chat message for a course
+  const sendChatMessage =  async (req, res) => {
+
+      try {
+          const courseId = req.params.courseId;
+          const userId = req.student; // Assuming you set `req.userId` in authentication middleware
+  
+          // Find the student
+          const student = await Student.findById(userId).populate('purchasedCourses');
+  
+          if (!student) {
+              return res.status(404).json({ message: 'User not found' });
+          }
+  
+          // Check if the user has purchased the course
+          const isPurchased = student.purchasedCourses.some(course => course._id.toString() === courseId);
+  
+          if (!isPurchased) {
+              return res.status(403).json({ message: 'You have not purchased this course' });
+          }
+  
+          // Find the course
+          const course = await Course.findById(courseId);
+  
+          if (!course) {
+              return res.status(404).json({ message: 'Course not found' });
+          }
+  
+
+          const newMessage = {
+              message: req.body.message, // Store the message as a question
+              sentBy: userId, // The user who sent the message
+              createdAt: Date.now(),
+          };
+  
+          // Push the new message into the qAndA array
+          course.chats.push(newMessage);
+          await course.save();
+  
+          res.status(200).json({ message: 'Message sent', chat: course.chats });
+      } catch (error) {
+          console.error(error);
+          res.status(500).json({ message: 'Server error' });
+      }
+  };
+  
+  // GET route to retrieve chat messages for a course
+const retrieveChatMessage =  async (req, res) => {
+
+      try {
+          const courseId = req.params.courseId;
+          const userId = req.student;
+  
+          // Find the student
+          const student = await Student.findById(userId).populate('purchasedCourses');
+  
+          if (!student) {
+              return res.status(404).json({ message: 'User not found' });
+          }
+  
+          // Check if the user has purchased the course
+          const isPurchased = student.purchasedCourses.some(course => course._id.toString() === courseId);
+  
+          if (!isPurchased) {
+              return res.status(403).json({ message: 'You have not purchased this course' });
+          }
+  
+          // Find the course
+          const course = await Course.findById(courseId).populate({
+            path: 'chats.sentBy', // Populate the sentBy field with user data
+            select: 'username', // Only select the username field
+        });
+          if (!course) {
+              return res.status(404).json({ message: 'Course not found' });
+          }
+          const formattedChats = course.chats.map(chat => ({
+            message: chat.message,
+            sender: chat.sentBy.username, // Get the username from the populated field
+            createdAt: chat.createdAt,
+        }));
+        res.status(200).json({ chat: formattedChats });
+      } catch (error) {
+          console.error(error);
+          res.status(500).json({ message: 'Server error' });
+      }
+  };
   
 
 module.exports = {
@@ -841,5 +928,7 @@ module.exports = {
    CreateOrderSubscription,
    verifyPaymentSubscription,
    savePurchaseSubscription,
-   getAllAds
+   getAllAds,
+   sendChatMessage,
+   retrieveChatMessage
 };
