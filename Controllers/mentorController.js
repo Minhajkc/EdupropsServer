@@ -217,8 +217,7 @@ const logoutMentor = async (req, res) => {
   };
 
   const sendChatMessage = async (req, res) => {
-    console.log('hiiii')
- console.log(req.body)
+      
     try {
         const mentorId = req.user.id; // Get the mentor ID from the authenticated user
         const { message } = req.body; // Get the message from the request body
