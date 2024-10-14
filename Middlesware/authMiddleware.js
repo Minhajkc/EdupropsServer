@@ -90,7 +90,6 @@ const verifyTokenMentor = (req, res, next) => {
             return res.status(403).json({ message: 'Access denied. Not an Mentor.' });
         }
         req.user = decoded;  
-        console.log(req.user)
         next();  
     } catch (err) {
         console.error(err);

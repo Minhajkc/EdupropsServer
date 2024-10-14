@@ -891,8 +891,8 @@ const retrieveChatMessage =  async (req, res) => {
               return res.status(404).json({ message: 'Course not found' });
           }
           const formattedChats = course.chats.map(chat => ({
-            message: chat.message,
-            sender: chat.sentBy.username, // Get the username from the populated field
+            message: chat.message,  
+            sender: chat.sentBy?.username || 'Mentor', // Get the username from the populated field
             createdAt: chat.createdAt,
         }));
         res.status(200).json({ chat: formattedChats });

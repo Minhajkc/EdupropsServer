@@ -28,5 +28,7 @@ router.post('/Mentor/password-reset/verify-otp',mentorController.passwordResetVe
 router.post('/Mentor/password-reset/reset-password',mentorController.passwordResetResetPassword );
 router.get('/Mentor/Profile',verifyTokenMentor,mentorController.getMentorProfile)
 router.post('/mentor/logout', verifyTokenMentor,mentorController.logoutMentor);
+router.post('/Mentor/chat',verifyTokenMentor,mentorController.sendChatMessage);
+router.get('/Mentor/chats',verifyTokenMentor,mentorController.retrieveChatMessage);
 
 module.exports = router;

@@ -7,6 +7,7 @@ const bcrypt = require('bcrypt');
 const Mentor = require('../Models/Mentor')
 const cloudinary = require('../Services/cloudinaryConfig');
 const streamifier = require('streamifier');
+const Course = require('../Models/Course')
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const { sendOtpEmail } = require('../config/email');
 
@@ -215,6 +216,97 @@ const logoutMentor = async (req, res) => {
     }
   };
 
+  const sendChatMessage = async (req, res) => {
+    console.log('hiiii')
+ console.log(req.body)
+    try {
+        const mentorId = req.user.id; // Get the mentor ID from the authenticated user
+        const { message } = req.body; // Get the message from the request body
+
+        // Find the mentor and populate their assigned courses
+        const mentor = await Mentor.findById(mentorId)
+
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found' });
+        }
+
+        // Check if the mentor has any assigned courses
+        if (mentor.assignedCourses.length === 0) {
+            return res.status(404).json({ message: 'No assigned courses found for the mentor' });
+        }
+
+        // Select the first assigned course (you can modify this logic as needed)
+        const courseId = mentor.assignedCourses[0]; // Get the first course
+        const course = await Course.findById(courseId);
+
+        // Create the new chat message
+        const newMessage = {
+            message,
+            sentBy: mentorId,
+            createdAt: Date.now(),
+        };
+
+
+        // Add the new message to the course chats
+        course.chats.push(newMessage);
+        await course.save();
+
+        res.status(200).json({ message: 'Message sent', chat: course.chats });
+    } catch (error) {
+        console.error(error); // Log the error for debugging
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+const retrieveChatMessage = async (req, res) => {
+    try {
+        const mentorId = req.user.id; // Assuming the mentor is authenticated and `req.user` holds their ID
+
+        // Find the mentor and populate their assigned courses
+        const mentor = await Mentor.findById(mentorId).populate('assignedCourses');
+
+        if (!mentor) {
+            return res.status(404).json({ message: 'Mentor not found' });
+        }
+
+        // Get the course IDs from the mentor's assignedCourses
+        const courseIds = mentor.assignedCourses.map(course => course._id);
+
+        // Find all the courses and populate their chats
+        const courses = await Course.find({ _id: { $in: courseIds } }).populate({
+            path: 'chats.sentBy',
+            select: 'username',
+        });
+
+        // Check if any courses were found
+        if (!courses || courses.length === 0) {
+            return res.status(404).json({ message: 'Courses not found' });
+        }
+
+        // Gather all chats from the courses
+        const allChats = [];
+
+        courses.forEach(course => {
+            if (course.chats && course.chats.length > 0) {
+                const formattedChats = course.chats.map(chat => ({
+                    message: chat.message,
+                    sender: chat.sentBy?.username || 'Mentor', // Get the username from the populated field
+                    createdAt: chat.createdAt,
+                }));
+                allChats.push(...formattedChats); // Add all formatted chats to the allChats array
+            }
+        });
+
+        res.status(200).json({ allChats });
+    } catch (error) {
+        console.error(error); // Log the error for debugging
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
 
 module.exports = {
     Register,
@@ -224,5 +316,7 @@ module.exports = {
     passwordResetVerifyOtp,
     passwordResetResetPassword,
     getMentorProfile,
-    logoutMentor
+    logoutMentor,
+    sendChatMessage,
+    retrieveChatMessage
 };
