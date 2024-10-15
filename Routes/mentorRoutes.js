@@ -31,4 +31,12 @@ router.post('/mentor/logout', verifyTokenMentor,mentorController.logoutMentor);
 router.post('/Mentor/mentorchat',verifyTokenMentor,mentorController.sendChatMessage);
 router.get('/Mentor/chats',verifyTokenMentor,mentorController.retrieveChatMessage);
 
+
+router.get('/Mentor/google-auth', mentorController.getAuthUrl);
+router.get('/Mentor/google-calendar/callback', mentorController.handleGoogleCallback);
+
+router.post('/Mentor/schedule',verifyTokenMentor,mentorController.scheduleGoogleMeet);
+router.delete('/Mentor/delete/:courseId/:meetId',verifyTokenMentor,mentorController.deleteGoogleMeet);
+router.get('/Mentor/scheduled/:courseId',verifyTokenMentor,mentorController.getScheduledMeets);
+
 module.exports = router;

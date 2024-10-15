@@ -32,7 +32,16 @@ const CourseSchema = new mongoose.Schema({
       createdAt: { type: Date, default: Date.now }
     }],
     lastAccessedAt: { type: Date },
-    completionRate: { type: Number, min: 0, max: 100, default: 0 }
+    completionRate: { type: Number, min: 0, max: 100, default: 0 },
+    googleMeet: [
+      {
+        name: { type: String, required: true },
+        date: { type: String, required: true },
+        startTime: { type: String, required: true },
+        endTime: { type: String, required: true },
+        link: { type: String, required: true },
+      },
+    ],
   });
   
 

@@ -10,9 +10,16 @@ const streamifier = require('streamifier');
 const Course = require('../Models/Course')
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const { sendOtpEmail } = require('../config/email');
+const { google } = require('googleapis');
+
+const { generateAuthUrl, setCredentials, oauth2Client} = require('../config/googleCalendar');
+
+
+
 
 
 const passwordResetOtps = {};
+
 
 const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -193,18 +200,27 @@ const passwordResetResetPassword = async (req, res) => {
 
 const getMentorProfile = async (req, res) => {
     try {
-        const mentor = await Mentor.findById(req.user.id).select('-password');
-        
-        if (!mentor) {
-            return res.status(404).json({ message: 'Mentor not found.' });
-        }
+      // Find mentor by ID and exclude password field
+      const mentor = await Mentor.findById(req.user.id)
+        .select('-password')
+        .populate({
+          path: 'assignedCourses', // Path to the assignedCourses array
+          select: 'title _id', // Select only the 'title' field from the Course model
+        });
+      
+      // If mentor not found
+      if (!mentor) {
+        return res.status(404).json({ message: 'Mentor not found.' });
+      }
 
-        res.status(200).json({ mentor });
+      // Send mentor data with populated course titles
+      res.status(200).json({ mentor });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error.' });
+      console.error('Error fetching mentor profile:', error);
+      res.status(500).json({ message: 'Server error.' });
     }
-};
+  };
+  
 
 
 const logoutMentor = async (req, res) => {
@@ -305,6 +321,126 @@ const retrieveChatMessage = async (req, res) => {
 };
 
 
+const getAuthUrl = (req, res) => {
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['https://www.googleapis.com/auth/calendar'],
+    redirect_uri: 'http://localhost:5173/Mentor/google-calendar/callback'  // Explicitly set redirect URI
+  });
+  res.json({ authUrl });
+  };
+
+  const handleGoogleCallback = async (req, res) => {
+    const { code } = req.body;
+  try {
+    const { tokens } = await oauth2Client.getToken({
+      code,
+      redirect_uri: 'http://localhost:5173/Mentor/google-calendar/callback'  // Explicitly set redirect URI
+    });
+    oauth2Client.setCredentials(tokens);
+    
+    // Log the full token response
+    console.log('Token Response:', JSON.stringify(tokens, null, 2));
+    
+    // Check if refresh token is present
+    if (tokens.refresh_token) {
+      console.log('Refresh Token:', tokens.refresh_token);
+      // Here you would typically save the refresh token securely
+    } else {
+      console.log('No refresh token received. User may have previously authorized the app.');
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error getting tokens:', error);
+    res.status(500).json({ error: 'Failed to get tokens' });
+  }
+  };
+
+
+  const scheduleGoogleMeet = async (req, res) => {
+    try {
+      const { name, date, startTime, endTime, courseId } = req.body;
+  
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  
+      const event = {
+        summary: name,
+        start: {
+          dateTime: `${date}T${startTime}:00`,
+          timeZone: 'Your_Timezone', // Replace with your timezone
+        },
+        end: {
+          dateTime: `${date}T${endTime}:00`,
+          timeZone: 'Your_Timezone', // Replace with your timezone
+        },
+        conferenceData: {
+          createRequest: {
+            requestId: Math.random().toString(36).substring(7),
+            conferenceSolutionKey: { type: 'hangoutsMeet' },
+          },
+        },
+      };
+  
+      const response = await calendar.events.insert({
+        calendarId: 'primary',
+        resource: event,
+        conferenceDataVersion: 1,
+      });
+  
+      const meetLink = response.data.hangoutLink;
+  
+      // Save the meet details to your database here
+  
+      res.status(200).json({ message: 'Google Meet scheduled successfully', meetLink });
+    } catch (error) {
+      console.error('Error creating Google Meet:', error);
+  
+      if (error.message === 'invalid_grant') {
+        // The refresh token is invalid or expired
+        res.status(401).json({ error: 'Authentication required', requiresAuth: true });
+      } else {
+        res.status(500).json({ error: 'Failed to create Google Meet' });
+      }
+    }
+  };
+
+
+
+
+
+  const deleteGoogleMeet = async (req, res) => {
+    const { courseId, meetId } = req.params;
+  
+    try {
+      await Course.findByIdAndUpdate(courseId, {
+        $pull: { googleMeet: { _id: meetId } },
+      });
+  
+      res.status(200).json({ message: 'Meeting deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+  
+  // Function to get all scheduled Google Meets for a course
+  const getScheduledMeets = async (req, res) => {
+    const { courseId } = req.params;
+  
+    try {
+      const course = await Course.findById(courseId).select('googleMeet');
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+      res.status(200).json(course.googleMeet);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+  
+
+
+
 
 
 module.exports = {
@@ -317,5 +453,10 @@ module.exports = {
     getMentorProfile,
     logoutMentor,
     sendChatMessage,
-    retrieveChatMessage
+    retrieveChatMessage,
+    getAuthUrl,
+    handleGoogleCallback,
+    scheduleGoogleMeet,
+    deleteGoogleMeet,
+    getScheduledMeets,
 };
