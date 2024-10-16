@@ -6,10 +6,10 @@ const Mentor = require('../Models/Mentor')
 const cloudinary = require('../Services/cloudinaryConfig');
 const streamifier = require('streamifier');
 const Course = require('../Models/Course')
-
+const Student = require('../Models/Student');
 const { sendOtpEmail } = require('../config/email');
 const { google } = require('googleapis');
-
+const mongoose = require('mongoose');
 
 
 
@@ -422,7 +422,38 @@ const deleteMeeting = async (req, res) => {
   }
 };
 
+const getStudentsByCourse = async (req, res) => {
+  console.log('call from afodn')
+  try {
+    const mentorId = req.user.id;  // assuming user is attached to req in the middleware
 
+    // Step 1: Find the mentor based on the logged-in user ID
+    const mentor = await Mentor.findById(mentorId);
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found' });
+    }
+
+    // Step 2: Extract the course ID from the mentor's assignedCourses array
+    const assignedCourse = mentor.assignedCourses[0]; // Assuming there's only one course ID in the array
+
+    if (!assignedCourse) {
+      return res.status(404).json({ message: 'No course assigned to this mentor' });
+    }
+
+    // Step 3: Find students who have purchased this course
+    const students = await Student.find({ purchasedCourses: assignedCourse}).select('username email');
+
+    if (students.length === 0) {
+      return res.status(404).json({ message: 'No students found for this course' });
+    }
+
+    // Step 4: Return the list of students
+    res.status(200).json(students);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 
 
@@ -440,6 +471,7 @@ module.exports = {
     scheduleMeet,
     getScheduledMeets,
     updateMeeting,
-    deleteMeeting
+    deleteMeeting,
+    getStudentsByCourse
 
 };

@@ -325,8 +325,7 @@ const getStudentProfile = async (req, res) => {
     const mentors = await Mentor.find({ _id: { $in: allInstructors } })
       .select('username email') // Fetch only necessary fields
       .lean(); // Convert Mongoose documents to plain JavaScript objects
-  console.log(mentors)
-    // Return the student and mentors details
+
     res.status(200).json({ student, mentors });
   } catch (error) {
     console.error(error);

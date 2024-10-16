@@ -34,6 +34,7 @@ router.post('/Mentor/scheduleMeeting/:courseId',verifyTokenMentor,mentorControll
 router.get('/Mentor/scheduledMeets/:courseId', verifyTokenMentor, mentorController.getScheduledMeets);
 router.put('/Mentor/course/:courseId/meeting/:meetingId',verifyTokenMentor,mentorController.updateMeeting); // Update meeting
 router.delete('/Mentor/course/:courseId/meeting/:meetingId',verifyTokenMentor,mentorController.deleteMeeting)
+router.get('/Mentor/students/mystudents',verifyTokenMentor,mentorController.getStudentsByCourse);
 
 
 module.exports = router;
