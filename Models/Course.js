@@ -33,7 +33,7 @@ const CourseSchema = new mongoose.Schema({
     }],
     lastAccessedAt: { type: Date },
     completionRate: { type: Number, min: 0, max: 100, default: 0 },
-    googleMeet: [
+    scheduleMeets: [
       {
         name: { type: String, required: true },
         date: { type: String, required: true },
