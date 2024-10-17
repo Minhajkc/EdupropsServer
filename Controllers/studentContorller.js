@@ -301,32 +301,50 @@ const getStudentProfile = async (req, res) => {
       return res.status(404).json({ message: 'Student not found.' });
     }
 
-    // Step 1: Fetch instructors from purchased courses
+    // Fetch purchased courses with instructors and scheduleMeets
     const purchasedCourses = await Course.find({ _id: { $in: student.purchasedCourses } })
-      .select('instructor') // Only select instructor field
-      .lean(); // Convert Mongoose documents to plain JavaScript objects
+      .select('title instructor scheduleMeets') // Select title, instructor, and scheduleMeets
+      .lean();
 
     const purchasedInstructors = purchasedCourses.map(course => course.instructor);
 
-    // Step 2: Fetch instructors from subscriptions
+    // Fetch subscription courses with instructors and scheduleMeets
     const subscriptionCourses = await Course.find({ _id: { $in: student.subscription } })
-      .select('instructor') // Only select instructor field
-      .lean(); // Convert Mongoose documents to plain JavaScript objects
+      .select('title instructor scheduleMeets')
+      .lean();
 
     const subscriptionInstructors = subscriptionCourses.map(course => course.instructor);
 
-    // Step 3: Combine both purchased and subscription instructors
+    // Combine both purchased and subscription instructors
     let allInstructors = [...purchasedInstructors, ...subscriptionInstructors];
-
-    // Step 4: Filter out invalid ObjectId values
     allInstructors = allInstructors.filter(id => mongoose.Types.ObjectId.isValid(id));
 
-    // Step 5: Fetch mentor details for valid instructor IDs
+    // Fetch mentors based on instructor IDs
     const mentors = await Mentor.find({ _id: { $in: allInstructors } })
       .select('username email') // Fetch only necessary fields
-      .lean(); // Convert Mongoose documents to plain JavaScript objects
+      .lean();
 
-    res.status(200).json({ student, mentors });
+    // Extract scheduleMeets from both purchased and subscription courses
+    
+    const scheduleMeets = [
+      ...purchasedCourses,
+      ...subscriptionCourses
+    ]
+      .filter(course => course.scheduleMeets && course.scheduleMeets.length > 0) // Ensure scheduleMeets exists
+      .map(course => ({
+        courseTitle: course.title,
+        meetings: course.scheduleMeets.map(meet => ({
+          name: meet.name,
+          date:meet.date,
+          startTime: meet.startTime,
+          endTime: meet.endTime,
+          link: meet.link
+        }))
+      }));
+  
+
+    // Return student, mentors, and scheduleMeets
+    res.status(200).json({ student, mentors, scheduleMeets });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error.' });
