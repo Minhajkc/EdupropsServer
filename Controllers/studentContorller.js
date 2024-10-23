@@ -48,7 +48,7 @@ const createStudent = async (req, res) => {
         const otp = generateOtp();
         otpStore[email] = { otp, expires: Date.now() + 5 * 60 * 1000 }; 
         console.log(otp);
-        console.log(otpStore,'otp stored');
+        console.log(otpStore,'Otp stored');
         
         await sendOtpEmail(email, otp);
 

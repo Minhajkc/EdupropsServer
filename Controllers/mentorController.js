@@ -423,7 +423,7 @@ const deleteMeeting = async (req, res) => {
 };
 
 const getStudentsByCourse = async (req, res) => {
-  console.log('call from afodn')
+
   try {
     const mentorId = req.user.id;  // assuming user is attached to req in the middleware
 
@@ -438,10 +438,12 @@ const getStudentsByCourse = async (req, res) => {
 
     if (!assignedCourse) {
       return res.status(404).json({ message: 'No course assigned to this mentor' });
-    }
+    }console.log(assignedCourse)
 
     // Step 3: Find students who have purchased this course
     const students = await Student.find({ purchasedCourses: assignedCourse}).select('username email');
+    const students2 = await Student.find({ subscription:assignedCourse})
+    console.log(students2)
 
     if (students.length === 0) {
       return res.status(404).json({ message: 'No students found for this course' });
