@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const Razorpay = require('razorpay');
 const client = new OAuth2Client('997696378611-qvopoihd2m7gvegm7hi8ud1t7aftrfv5.apps.googleusercontent.com');
 const Student = require('../Models/Student');
-const { sendOtpEmail } = require('../config/email');
+const { sendOtpEmail, sendContactFormEmail } = require('../config/email');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
 const Category = require('../Models/CourseCategory')
 const Course = require('../Models/Course')
@@ -321,7 +321,7 @@ const getStudentProfile = async (req, res) => {
 
     // Fetch mentors based on instructor IDs
     const mentors = await Mentor.find({ _id: { $in: allInstructors } })
-      .select('username email') // Fetch only necessary fields
+      .select('username email degree') // Fetch only necessary fields
       .lean();
 
     // Extract scheduleMeets from both purchased and subscription courses
@@ -918,6 +918,80 @@ const retrieveChatMessage =  async (req, res) => {
           res.status(500).json({ message: 'Server error' });
       }
   };
+  const addReview = async (req, res) => {
+  
+    const { userId, rating, reviewText, userName } = req.body.reviewdata; // Destructure the review data
+
+    try {
+        // Directly push the new review to the admin's reviews array
+        await Admin.updateOne(
+            {}, // This finds the first admin (or specify criteria if needed)
+            { $push: { reviews: { userId, rating, reviewText, userName } } } // Add userName as well if you want
+        );
+
+        // Send success response
+        return res.status(200).json({ message: 'Review added successfully' });
+    } catch (error) {
+        console.error('Error adding review:', error);
+        return res.status(500).json({ message: 'Failed to add review', error: error.message });
+    }
+};
+
+
+const getReviews = async (req, res) => {
+  try {
+      // Fetch the admin document and populate the reviews array
+      const admin = await Admin.findOne(); // Only select the reviews field
+      if (!admin || !admin.reviews) {
+          return res.status(404).json({ message: 'No reviews found.' });
+      }
+      return res.status(200).json(admin.reviews); // Send the reviews as a response
+  } catch (error) {
+      console.error('Error fetching reviews:', error);
+      return res.status(500).json({ message: 'Failed to fetch reviews', error: error.message });
+  }
+};
+
+
+const subscribeEmail = async (req, res) => {
+
+  const { email } = req.body;
+
+  // Validate the email format
+  if (!email || !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+
+  try {
+    const admin = await Admin.findOne();
+
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    // Push the email to the subscriptionEmail array if it doesn't already exist
+    if (!admin.subscriptionEmail.includes(email)) {
+      admin.subscriptionEmail.push(email);
+      await admin.save(); // Save the updated admin document
+    }
+
+    res.status(200).json({ message: 'Subscribed successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error: ' + error.message });
+  }
+}
+
+
+const contactForm = async (req,res) => {
+  const formData = req.body;
+
+  try {
+      await sendContactFormEmail(formData);
+      return res.status(200).json({ message: 'Message sent successfully' });
+  } catch (error) {
+      return res.status(500).json({ message: 'Failed to send message', error });
+  }
+}
   
 
 module.exports = {
@@ -947,5 +1021,9 @@ module.exports = {
    savePurchaseSubscription,
    getAllAds,
    sendChatMessage,
-   retrieveChatMessage
+   retrieveChatMessage,
+   addReview,
+   getReviews,
+   subscribeEmail,
+   contactForm
 };

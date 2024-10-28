@@ -30,7 +30,20 @@ const AdminSchema = new mongoose.Schema({
         type: Number,
         required: true,
         default: 1100, 
-      }
+      },
+      reviews: [
+        {
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+            userName: { type: String, required: true },
+            rating: { type: Number, required: true },
+            reviewText: { type: String, required: true },
+            date: { type: Date, default: Date.now }
+        }
+    ],
+    subscriptionEmail: {
+      type: [String], // Array of strings to store subscribed emails
+      default: [],
+    },
 });
 
 const Admin = mongoose.model('Admin', AdminSchema);

@@ -33,7 +33,10 @@ router.post('/savePurchaseSubscription',verifyTokenStudent,studentController.sav
 router.get('/ads',studentController.getAllAds)
 router.post('/courses/:courseId/chat',verifyTokenStudent,studentController.sendChatMessage)
 router.get('/courses/:courseId/chat',verifyTokenStudent,studentController.retrieveChatMessage)
-
+router.post('/review',verifyTokenStudent,studentController.addReview)
+router.get('/reviews',studentController.getReviews);
+router.post('/subscribe',studentController.subscribeEmail);
+router.post('/contact', studentController.contactForm)
 
 
 module.exports = router;

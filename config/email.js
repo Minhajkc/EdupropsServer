@@ -21,6 +21,28 @@ const sendOtpEmail = async (to, otp) => {
     }
 };
 
+const sendContactFormEmail = async (formData) => {
+    const { name, email, message } = formData;
+    try {
+        await transporter.sendMail({
+            from: 'myeduprops@gmail.com',
+            to: 'myeduprops@gmail.com', // Change this to your email address
+            subject: 'New Contact Form Submission',
+            text: `
+                You have received a new message from the contact form:
+
+                Name: ${name}
+                Email: ${email}
+                Message: ${message}
+            `,
+        });
+    } catch (error) {
+        console.error('Error sending contact form email:', error);
+    }
+};
+
+
 module.exports = {
     sendOtpEmail,
+    sendContactFormEmail
 };
