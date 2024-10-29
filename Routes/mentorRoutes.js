@@ -3,6 +3,7 @@ const fileUpload = require('express-fileupload');
 const mentorController = require('../Controllers/mentorController');
 const {verifyTokenMentor} = require('../Middlesware/authMiddleware')
 
+
 const router = express.Router();
 
 
@@ -35,6 +36,18 @@ router.get('/Mentor/scheduledMeets/:courseId', verifyTokenMentor, mentorControll
 router.put('/Mentor/course/:courseId/meeting/:meetingId',verifyTokenMentor,mentorController.updateMeeting); // Update meeting
 router.delete('/Mentor/course/:courseId/meeting/:meetingId',verifyTokenMentor,mentorController.deleteMeeting)
 router.get('/Mentor/students/mystudents',verifyTokenMentor,mentorController.getStudentsByCourse);
+router.get('/Mentor/getCourseDetailsMentor',verifyTokenMentor,mentorController.getCourseDetailsMentor)
+
+router.put('/Mentor/addVideo/:id',verifyTokenMentor, fileUpload({
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}),mentorController.AddVideo)
+router.delete('/Mentor/courses/:courseId/lessons/:lessonIndex', verifyTokenMentor,mentorController.deleteLesson);
+router.put('/Mentor/editVideo/:courseId/:lessonId', verifyTokenMentor, fileUpload({
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}), mentorController.editLessonVideo);
+router.put('/Mentor/courses/:courseId/lessons/:lessonId',verifyTokenMentor,mentorController.updatelesson)
 
 
 module.exports = router;

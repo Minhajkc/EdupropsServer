@@ -398,6 +398,7 @@ const updateCourse = async (req,res) =>{
 
 
 const AddVideo = async (req, res) => {
+ 
 
     const { id } = req.params;
     const { title, description } = req.body;
@@ -499,6 +500,7 @@ const getCourseDetailsForMentor = async (req, res) => {
   
 
 const editLessonVideo = async (req, res) => {
+
     const { courseId, lessonId } = req.params;
     const { title, description, lessonIndex,editingVideoIndex } = req.body; 
     const videoFiles = req.files; 

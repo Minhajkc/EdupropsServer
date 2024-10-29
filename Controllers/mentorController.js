@@ -438,12 +438,12 @@ const getStudentsByCourse = async (req, res) => {
 
     if (!assignedCourse) {
       return res.status(404).json({ message: 'No course assigned to this mentor' });
-    }console.log(assignedCourse)
+    }
 
     // Step 3: Find students who have purchased this course
     const students = await Student.find({ purchasedCourses: assignedCourse}).select('username email');
     const students2 = await Student.find({ subscription:assignedCourse})
-    console.log(students2)
+
 
     if (students.length === 0) {
       return res.status(404).json({ message: 'No students found for this course' });
@@ -457,6 +457,209 @@ const getStudentsByCourse = async (req, res) => {
   }
 };
 
+
+// Assuming this is in your routes file for Mentor
+const getCourseDetailsMentor = async (req, res) => {
+  try {
+    const { courseId } = req.query; // Retrieve courseId from query params
+
+    if (!courseId) {
+      return res.status(400).json({ success: false, message: 'Course ID is required' });
+    }
+
+    // Fetch the course by its ID only, without populating any fields
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Course not found' });
+    }
+
+    // Send the raw course data to the frontend
+    res.status(200).json({ success: true, course });
+  } catch (e) {
+    console.error('Error fetching course details:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+const AddVideo = async (req, res) => {
+  console.log('menotr')
+
+    const { id } = req.params;
+    const { title, description } = req.body;
+    const videoFiles = req.files;  
+
+    try {
+ 
+        if (!videoFiles || Object.keys(videoFiles).length === 0) {
+            return res.status(400).json({ message: 'No files uploaded' });
+        }
+
+        const course = await Course.findById(id);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        const uploadedVideos = await Promise.all(
+            Object.values(videoFiles).map(async (file) => {
+                try {
+                    const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                        resource_type: 'video',
+                        folder:'Videos'
+                    });
+                    return result.secure_url;
+                } catch (uploadError) {
+                    console.error('Cloudinary upload error:', uploadError.message);
+                    throw uploadError;
+                }
+            })
+        );
+
+        const newVideoEntry = {
+            title,
+            description,
+            url: uploadedVideos  
+        };
+
+
+        course.lessons.push(newVideoEntry);
+        await course.save();
+
+        res.json(course);
+    } catch (err) {
+        console.error('AddVideo error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+const deleteLesson = async (req,res) =>{
+
+  const { courseId, lessonIndex } = req.params;
+
+  try {
+      const course = await Course.findById(courseId);
+
+      if (!course) {
+          return res.status(404).json({ message: 'Course not found' });
+      }
+
+      if (lessonIndex < 0 || lessonIndex >= course.lessons.length) {
+          return res.status(400).json({ message: 'Invalid lesson index' });
+      }
+
+      course.lessons.splice(lessonIndex, 1);
+      await course.save();
+
+      res.status(200).json({ message: 'Lesson deleted successfully' });
+  } catch (err) {
+      res.status(500).json({ message: err.message });
+  }
+}
+
+
+const editLessonVideo = async (req, res) => {
+  const { courseId, lessonId } = req.params;
+  const { editingVideoIndex } = req.body; 
+  const videoFiles = req.files; 
+
+  try {
+  
+      const course = await Course.findById(courseId);
+      if (!course) {
+          return res.status(404).json({ message: 'Course not found' });
+      }
+
+  
+      const lesson = course.lessons.id(lessonId);
+      if (!lesson) {
+          return res.status(404).json({ message: 'Lesson not found' });
+      }
+   
+
+
+      if (videoFiles && Object.keys(videoFiles).length > 0) {
+          const uploadedVideos = await Promise.all(
+              Object.values(videoFiles).map(async (file) => {
+                  try {
+                      const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                          resource_type: 'video',
+                          folder: 'Videos'
+                      });
+
+                      return result.secure_url;
+                  } catch (uploadError) {
+                      console.error('Cloudinary upload error:', uploadError.message);
+                      throw uploadError;
+                  }
+              })
+          );
+
+          // Ensure lesson.url is an array
+          if (!Array.isArray(lesson.url)) {
+              lesson.url = [];
+          }
+
+          // Update the video at the specified editingVideoIndex
+          if (editingVideoIndex !== undefined && !isNaN(editingVideoIndex)) {
+              const index = parseInt(editingVideoIndex, 10); 
+
+              if (index >= 0 && index < lesson.url.length) {
+                  lesson.url[index] = uploadedVideos[0]; // Update only the specified video
+              } else {
+                  return res.status(400).json({ message: 'Invalid lesson index' });
+              }
+          } else {
+              // If no editing index is provided, push new videos to the array
+              lesson.url.push(...uploadedVideos);
+          }
+      }
+
+      // Save the updated course document
+      await course.save();
+
+      res.json({ message: 'Lesson video updated successfully', lesson });
+  } catch (err) {
+      console.error('editLessonVideo error:', err.message);
+      res.status(500).json({ message: err.message });
+  }
+};
+
+const updatelesson = async (req,res) => {
+  console.log(req.params,req.body)
+  const { courseId, lessonId } = req.params;
+  const { title, description } = req.body;
+
+  try {
+      // Find the course by courseId
+      const course = await Course.findById(courseId);
+      if (!course) {
+          return res.status(404).json({ message: 'Course not found' });
+      }
+
+      // Find the specific lesson by lessonId within the course
+      const lesson = course.lessons.id(lessonId);
+      if (!lesson) {
+          return res.status(404).json({ message: 'Lesson not found' });
+      }
+
+      // Update lesson details (title, description) only if provided
+      if (title) {
+          lesson.title = title;
+      }
+      if (description) {
+          lesson.description = description;
+      }
+
+      // Save the updated course
+      await course.save();
+
+      return res.status(200).json({ message: 'Lesson updated successfully!', lesson });
+  } catch (error) {
+      console.error('Error updating lesson:', error);
+      return res.status(500).json({ message: 'Server error' });
+  }
+}
 
 
 module.exports = {
@@ -474,6 +677,11 @@ module.exports = {
     getScheduledMeets,
     updateMeeting,
     deleteMeeting,
-    getStudentsByCourse
+    getStudentsByCourse,
+    getCourseDetailsMentor,
+    AddVideo,
+    deleteLesson,
+    editLessonVideo,
+    updatelesson
 
 };
