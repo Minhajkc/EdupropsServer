@@ -54,5 +54,10 @@ router.put('/Admin/ads/:id',verifyTokenAdmin,fileUpload({
 }),AdminController.EditAds)
 router.delete('/Admin/ads/:id',verifyTokenAdmin,AdminController.DeleteAds)
 router.put('/Admin/courses/:courseId/instructor',verifyTokenAdmin,AdminController.updateCourseInstructor);
+router.put('/Admin/editVideo/admin/:courseId/:lessonId', verifyTokenAdmin, fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp/'
+  }), AdminController.editLessonVideos);
+  router.put('/Admin/courses/admin/:courseId/lessons/:lessonId',verifyTokenAdmin,AdminController.updatelesson)
 
 module.exports = router;

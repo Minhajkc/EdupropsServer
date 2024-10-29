@@ -626,7 +626,7 @@ const editLessonVideo = async (req, res) => {
 };
 
 const updatelesson = async (req,res) => {
-  console.log(req.params,req.body)
+
   const { courseId, lessonId } = req.params;
   const { title, description } = req.body;
 

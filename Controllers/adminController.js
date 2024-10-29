@@ -787,7 +787,109 @@ const updateSubscriptionRates = async (req, res) => {
     }
   };
   
+  const editLessonVideos = async (req, res) => {
+    const { courseId, lessonId } = req.params;
+    const { editingVideoIndex } = req.body; 
+    const videoFiles = req.files; 
+  
+    try {
+    
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+  
+    
+        const lesson = course.lessons.id(lessonId);
+        if (!lesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+     
+  
+  
+        if (videoFiles && Object.keys(videoFiles).length > 0) {
+            const uploadedVideos = await Promise.all(
+                Object.values(videoFiles).map(async (file) => {
+                    try {
+                        const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                            resource_type: 'video',
+                            folder: 'Videos'
+                        });
+  
+                        return result.secure_url;
+                    } catch (uploadError) {
+                        console.error('Cloudinary upload error:', uploadError.message);
+                        throw uploadError;
+                    }
+                })
+            );
+  
+            // Ensure lesson.url is an array
+            if (!Array.isArray(lesson.url)) {
+                lesson.url = [];
+            }
+  
+            // Update the video at the specified editingVideoIndex
+            if (editingVideoIndex !== undefined && !isNaN(editingVideoIndex)) {
+                const index = parseInt(editingVideoIndex, 10); 
+  
+                if (index >= 0 && index < lesson.url.length) {
+                    lesson.url[index] = uploadedVideos[0]; // Update only the specified video
+                } else {
+                    return res.status(400).json({ message: 'Invalid lesson index' });
+                }
+            } else {
+                // If no editing index is provided, push new videos to the array
+                lesson.url.push(...uploadedVideos);
+            }
+        }
+  
+        // Save the updated course document
+        await course.save();
+  
+        res.json({ message: 'Lesson video updated successfully', lesson });
+    } catch (err) {
+        console.error('editLessonVideo error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+  };
 
+  const updatelesson = async (req,res) => {
+
+    const { courseId, lessonId } = req.params;
+    const { title, description } = req.body;
+  
+    try {
+        // Find the course by courseId
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+  
+        // Find the specific lesson by lessonId within the course
+        const lesson = course.lessons.id(lessonId);
+        if (!lesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+  
+        // Update lesson details (title, description) only if provided
+        if (title) {
+            lesson.title = title;
+        }
+        if (description) {
+            lesson.description = description;
+        }
+  
+        // Save the updated course
+        await course.save();
+  
+        return res.status(200).json({ message: 'Lesson updated successfully!', lesson });
+    } catch (error) {
+        console.error('Error updating lesson:', error);
+        return res.status(500).json({ message: 'Server error' });
+    }
+  }
+  
 
 module.exports = {
    AdminLogin,
@@ -821,5 +923,7 @@ module.exports = {
    AddAds,
    EditAds,
    DeleteAds,
-   updateCourseInstructor
+   updateCourseInstructor,
+   editLessonVideos,
+   updatelesson
 };
