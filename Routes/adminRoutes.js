@@ -59,5 +59,6 @@ router.put('/Admin/editVideo/admin/:courseId/:lessonId', verifyTokenAdmin, fileU
     tempFileDir: '/tmp/'
   }), AdminController.editLessonVideos);
   router.put('/Admin/courses/admin/:courseId/lessons/:lessonId',verifyTokenAdmin,AdminController.updatelesson)
+  router.get('/Admin/dashboard-metrics', verifyTokenAdmin,AdminController.getDashboardMetrics);
 
 module.exports = router;

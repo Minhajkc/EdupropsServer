@@ -891,6 +891,116 @@ const updateSubscriptionRates = async (req, res) => {
   }
   
 
+  const getDashboardMetrics = async (req, res) => {
+    try {
+      // Count general metrics
+      const userCount = await Student.countDocuments();
+      const CourseCount = await Course.countDocuments();
+      const CategoryCount = await Category.countDocuments();
+      const mentorCount = await Mentor.countDocuments();
+      const googleauthusers = await Student.countDocuments({ password: "googleauth" });
+      const isBlocked = await Student.countDocuments({ blocked: true });
+
+
+      const totalSalesData = await Student.aggregate([
+        { $unwind: "$purchasedCourses" }, // Unwind the purchasedCourses array
+        {
+          $lookup: {
+            from: "courses", // Ensure this matches your Course collection name
+            localField: "purchasedCourses",
+            foreignField: "_id",
+            as: "courseDetails"
+          }
+        },
+        { $unwind: "$courseDetails" }, // Unwind the courseDetails to get access to the price
+        {
+          $group: {
+            _id: null,
+            totalSales: { $sum: "$courseDetails.price" } // Sum the prices of the purchased courses
+          }
+        },
+        {
+          $project: {
+            _id: 0, // Exclude the _id field from the result
+            totalSales: 1 // Include totalSales in the result
+          }
+        }
+      ]);
+  
+      const totalSales = totalSalesData.length > 0 ? totalSalesData[0].totalSales : 0;
+
+      
+     
+  
+    
+      const mostPurchasedCourses = await Student.aggregate([
+        { $unwind: "$purchasedCourses" }, // Unwind the array to get individual course IDs
+        { $group: { _id: "$purchasedCourses", count: { $sum: 1 } } }, // Count occurrences of each course ID
+        { $sort: { count: -1 } }, // Sort by count in descending order
+        { $limit: 3 } // Limit to top 3
+      ]);
+  
+      // Extract the course IDs from the aggregation result
+      const topCourseIds = mostPurchasedCourses.map(course => course._id);
+  
+      // Fetch the details of the top 3 courses and populate the title
+      const topCourses = await Course.find({ _id: { $in: topCourseIds } }).select("title");
+
+
+      const membershipCounts = await Student.aggregate([
+        { $group: { _id: "$membershipType", count: { $sum: 1 } } }
+      ]);
+  
+      // Format membershipCounts for easy access in the frontend
+      const membershipData = {
+        silver: membershipCounts.find(type => type._id === 'silver')?.count || 0,
+        platinum: membershipCounts.find(type => type._id === 'platinum')?.count || 0,
+        gold: membershipCounts.find(type => type._id === 'gold')?.count || 0
+      };
+      
+
+
+      const monthlyCounts = await Student.aggregate([
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m", date: "$createdAt" } // Group by year and month
+            },
+            count: { $sum: 1 } // Count number of students per month
+          }
+        },
+        { $sort: { _id: 1 } } // Sort by date ascending
+      ]);
+  
+      // Format the data for the frontend
+      const formattedData = monthlyCounts.map(item => ({
+        month: item._id,
+        count: item.count,
+      }));
+  
+      const data = {
+        userCount,
+        CourseCount,
+        CategoryCount,
+        mentorCount,
+        topCourses,
+        membershipData,
+        formattedData, 
+        googleauthusers,
+        isBlocked,
+        totalSales
+      };
+  
+      res.json(data);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to fetch dashboard metrics" });
+    }
+  };
+  
+
+
+
 module.exports = {
    AdminLogin,
    checkAuth,
@@ -925,5 +1035,6 @@ module.exports = {
    DeleteAds,
    updateCourseInstructor,
    editLessonVideos,
-   updatelesson
+   updatelesson,
+   getDashboardMetrics
 };
